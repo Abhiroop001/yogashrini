@@ -1,5 +1,6 @@
 const Course = require("../db/coursedb");
 const Week   = require("../db/weekdb");
+const mongoose = require("mongoose");
 const path   = require("path");
 const fs     = require("fs");
 
@@ -25,6 +26,9 @@ exports.listCourses = async (req, res) => {
 // GET /course/:id
 exports.getCourse = async (req, res) => {
   try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ error: "Invalid course ID format" });
+    }
     const course = await Course.findById(req.params.id);
     if (!course) return res.status(404).json({ error: "Course not found" });
     res.json({ course });

@@ -1,9 +1,10 @@
 const User   = require("../db/userdb");
 const bcrypt = require("bcrypt");
 const jwt    = require("jsonwebtoken");
+const config = require("../config");
 
-const JWT_SECRET  = process.env.JWT_SECRET  || "yogashirini_secret_key_2024";
-const JWT_EXPIRES = process.env.JWT_EXPIRES || "7d";
+const JWT_SECRET  = config.JWT_SECRET;
+const JWT_EXPIRES = config.JWT_EXPIRES;
 
 // ── helpers ─────────────────────────────────────────────────────────────────
 function makeToken(user) {

@@ -1,113 +1,104 @@
-// server.js - Yogashrini Platform Backend
-require("dotenv").config();
+// Server/index.js - Yogashrini Platform Backend
+// Enterprise-Grade Modular Architecture with Graceful Shutdown & Strict Secret Isolation
+
 const express = require("express");
-const mongoose = require("mongoose");
 const cors = require("cors");
 const path = require("path");
-const fileUpload = require("express-fileupload");
+const config = require("./config");
+const connectDB = require("./config/db");
+const securityHeaders = require("./middleware/security");
+const requestLogger = require("./middleware/logger");
+const { notFoundHandler, globalErrorHandler } = require("./middleware/errorHandler");
+const apiRouter = require("./routes");
 
 const app = express();
-const PORT = process.env.PORT || 2000;
 
-const MONGO_URI = process.env.MONGO_URI || "mongodb+srv://abhiroopm001:abhiroop1234@cluster0.zwluqem.mongodb.net/mern56?retryWrites=true&w=majority&appName=Cluster0";
+// ── Security & Core Middleware ──────────────────────────────────────────────
+app.use(securityHeaders);
+app.use(requestLogger);
 
-mongoose.connect(MONGO_URI)
-  .then(() => console.log("Mongo connected"))
-  .catch(err => console.error("Mongo connection error:", err));
+// ── CORS Configuration ──────────────────────────────────────────────────────
+app.use(
+  cors({
+    origin: function (origin, callback) {
+      if (!origin) return callback(null, true);
+      const isAllowed =
+        config.ALLOWED_ORIGINS.indexOf(origin) !== -1 ||
+        /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin);
 
-// Allowed origins - matches any localhost or 127.0.0.1 port in dev
-const allowedOrigins = [
-  "http://localhost:5173",
-  "http://localhost:3000",
-  "http://localhost:3001",
-  "http://localhost:3002",
-  "http://localhost:3003",
-  "http://127.0.0.1:5173",
-  "http://127.0.0.1:3000",
-  "http://127.0.0.1:3001",
-];
+      if (isAllowed) {
+        return callback(null, true);
+      } else {
+        return callback(new Error("CORS policy violation: origin not permitted (" + origin + ")"), false);
+      }
+    },
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization", "Accept"],
+    credentials: true,
+    optionsSuccessStatus: 200
+  })
+);
 
-app.use(cors({
-  origin: function(origin, callback) {
-    if (!origin) return callback(null, true);
-    if (allowedOrigins.indexOf(origin) !== -1 || /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) {
-      return callback(null, true);
-    } else {
-      return callback(new Error("CORS policy: This origin is not allowed - " + origin), false);
-    }
-  },
-  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization", "Accept"],
-  credentials: true,
-  optionsSuccessStatus: 200
-}));
-
-// Parse JSON / urlencoded payloads
+// ── Payload Parsers ─────────────────────────────────────────────────────────
 app.use(express.json({ limit: "200mb" }));
-app.use(express.urlencoded({ extended: true }));
+app.use(express.urlencoded({ extended: true, limit: "200mb" }));
 
-// Static directories
+// ── Static Asset Directories ────────────────────────────────────────────────
 app.use(express.static(path.join(__dirname, "public")));
 app.use("/product_img", express.static(path.join(__dirname, "public/product_img")));
 app.use("/thumbnails", express.static(path.join(__dirname, "public/thumbnails")));
 app.use("/videos", express.static(path.join(__dirname, "public/videos")));
 
-const uploadMiddleware = fileUpload({ limits: { fileSize: 200 * 1024 * 1024 }, useTempFiles: false });
+// ── Master API Routing ──────────────────────────────────────────────────────
+app.use("/", apiRouter);
 
-// Routes that need file upload / multipart form parsing
-const pr = require("./routes/product_r");
-app.use("/product", uploadMiddleware, pr);
+// ── 404 & Error Handling ────────────────────────────────────────────────────
+app.use(notFoundHandler);
+app.use(globalErrorHandler);
 
-const ar = require("./routes/admin");
-app.use("/admin", ar);
+// ── Server Bootstrap & Database Connection ──────────────────────────────────
+let serverInstance;
 
-const rr = require("./routes/retreat_r");
-app.use("/retreat", uploadMiddleware, rr);
-
-const cr = require("./routes/course_r");
-app.use("/course", uploadMiddleware, cr);
-
-// Routes that do NOT need file upload (plain JSON)
-const pmr = require("./routes/payment_r");
-app.use("/payment", pmr);
-
-const ur = require("./routes/user_r");
-app.use("/user", ur);
-
-// AI Services & RAG Endpoints
-const air = require("./routes/ai_r");
-app.use("/ai", air);
-
-const ragService = require("./services/rag_service");
-
-// Health Check Root
-app.get("/", (req, res) => res.json({ status: "online", service: "Yogashrini Server", timestamp: new Date().toISOString() }));
-
-// --- Chatbot Endpoint (Upgraded with Domain-Specific RAG Engine) ---
-app.post("/chat", async (req, res) => {
-  const { message, history } = req.body;
-  if (!message) return res.status(400).json({ error: "No message provided" });
-
+async function startServer() {
   try {
-    const result = await ragService.queryWithRAG(message, Array.isArray(history) ? history : []);
-    return res.json({
-      choices: [
-        {
-          message: {
-            content: result.reply
-          }
-        }
-      ],
-      sources: result.sources,
-      engine: {
-        model: result.model,
-        provider: result.provider
-      }
-    });
-  } catch (error) {
-    console.error("Chat error:", error);
-    res.status(500).json({ error: error.message });
-  }
-});
+    // 1. Establish database connection
+    await connectDB();
 
-app.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`));
+    // 2. Start HTTP listener
+    serverInstance = app.listen(config.PORT, () => {
+      console.log(`========================================================`);
+      console.log(`  Yogashrini Platform Backend Server v2.0.0            `);
+      console.log(`  Mode:     ${config.NODE_ENV.toUpperCase()}           `);
+      console.log(`  Endpoint: http://localhost:${config.PORT}            `);
+      console.log(`  Health:   http://localhost:${config.PORT}/health     `);
+      console.log(`========================================================`);
+    });
+  } catch (err) {
+    console.error("[Fatal Error] Server bootstrap aborted:", err.message);
+    process.exit(1);
+  }
+}
+
+// ── Graceful Process Teardown ───────────────────────────────────────────────
+function handleShutdown(signal) {
+  console.log(`\n[Shutdown] Received ${signal}. Closing server connections...`);
+  if (serverInstance) {
+    serverInstance.close(() => {
+      console.log("[Shutdown] HTTP server closed successfully.");
+      const mongoose = require("mongoose");
+      mongoose.connection.close(false).then(() => {
+        console.log("[Shutdown] MongoDB connection closed.");
+        process.exit(0);
+      });
+    });
+  } else {
+    process.exit(0);
+  }
+}
+
+process.on("SIGINT", () => handleShutdown("SIGINT"));
+process.on("SIGTERM", () => handleShutdown("SIGTERM"));
+
+startServer();
+
+module.exports = app;
