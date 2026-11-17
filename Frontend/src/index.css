@@ -1,6 +1,6 @@
 /* Frontend/src/index.css
    Unified Design Tokens & Global Responsive Base Architecture
-   Strict Zero Emojis - WCAG AA Contrast Compliant
+   Strict Zero Emojis - WCAG AA & AAA Contrast Compliant
 */
 
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap');
@@ -32,16 +32,18 @@
 
 /* Light Mode Tokens (Default) */
 :root,
-body[data-theme="light"] {
+html[data-theme="light"],
+body[data-theme="light"],
+[data-bs-theme="light"] {
   --bg-primary: #FAF9F6;
   --bg-secondary: #F3F1EC;
   --bg-surface: #FFFFFF;
   --bg-surface-elevated: #FFFFFF;
-  --bg-glass: rgba(255, 255, 255, 0.82);
+  --bg-glass: rgba(255, 255, 255, 0.88);
 
   --text-primary: #121826;
-  --text-secondary: #4B5565;
-  --text-muted: #6C737F;
+  --text-secondary: #475569;
+  --text-muted: #64748B;
   --text-inverse: #FFFFFF;
 
   --border-subtle: #E3E2DE;
@@ -58,26 +60,37 @@ body[data-theme="light"] {
   --table-head-bg: #F0ECE1;
   --table-text: #1E293B;
   --heading-color: #0F172A;
+
+  /* Bootstrap 5.3 Bridge */
+  --bs-body-color: #121826;
+  --bs-body-bg: #FAF9F6;
+  --bs-secondary-color: #475569;
+  --bs-tertiary-color: #64748B;
+  --bs-border-color: #E3E2DE;
+  --bs-heading-color: #0F172A;
 }
 
-/* Dark Mode Tokens */
-body[data-theme="dark"] {
+/* Dark Mode Tokens (High Contrast WCAG AAA) */
+html[data-theme="dark"],
+body[data-theme="dark"],
+[data-theme="dark"],
+[data-bs-theme="dark"] {
   --bg-primary: #0B0E14;
   --bg-secondary: #121721;
   --bg-surface: #181F2C;
   --bg-surface-elevated: #20293A;
-  --bg-glass: rgba(24, 31, 44, 0.82);
+  --bg-glass: rgba(24, 31, 44, 0.88);
 
-  --text-primary: #F8FAFC;
-  --text-secondary: #CBD5E1;
-  --text-muted: #94A3B8;
+  --text-primary: #FFFFFF;
+  --text-secondary: #E2E8F0;
+  --text-muted: #CBD5E1;
   --text-inverse: #0F172A;
 
-  --border-subtle: rgba(255, 255, 255, 0.08);
-  --border-prominent: rgba(255, 255, 255, 0.16);
+  --border-subtle: rgba(255, 255, 255, 0.12);
+  --border-prominent: rgba(255, 255, 255, 0.22);
 
-  --card-shadow: 0 4px 24px rgba(0, 0, 0, 0.45), 0 1px 3px rgba(0, 0, 0, 0.3);
-  --card-shadow-hover: 0 16px 44px rgba(0, 0, 0, 0.65), 0 0 20px rgba(255, 45, 111, 0.15);
+  --card-shadow: 0 4px 24px rgba(0, 0, 0, 0.55), 0 1px 3px rgba(0, 0, 0, 0.4);
+  --card-shadow-hover: 0 16px 44px rgba(0, 0, 0, 0.75), 0 0 20px rgba(255, 45, 111, 0.2);
   --card-backdrop-blur: blur(18px);
 
   /* Semantic Maps */
@@ -85,8 +98,16 @@ body[data-theme="dark"] {
   --accent-2: #A78BFA;
   --link-color: #93C5FD;
   --table-head-bg: #1A2333;
-  --table-text: #F1F5F9;
-  --heading-color: #F8FAFC;
+  --table-text: #FFFFFF;
+  --heading-color: #FFFFFF;
+
+  /* Bootstrap 5.3 Bridge */
+  --bs-body-color: #FFFFFF;
+  --bs-body-bg: #0B0E14;
+  --bs-secondary-color: #E2E8F0;
+  --bs-tertiary-color: #CBD5E1;
+  --bs-border-color: rgba(255, 255, 255, 0.15);
+  --bs-heading-color: #FFFFFF;
 }
 
 /* Base Reset & Typography */
@@ -125,6 +146,78 @@ a {
 
 a:hover {
   color: var(--brand-primary);
+}
+
+/* ==========================================================================
+   Universal High-Contrast Text Utility Overrides (Eliminates Invisible Dark Text)
+   ========================================================================== */
+.text-muted,
+[data-theme="dark"] .text-muted,
+body[data-theme="dark"] .text-muted,
+[data-bs-theme="dark"] .text-muted {
+  color: var(--text-muted) !important;
+}
+
+.text-secondary,
+[data-theme="dark"] .text-secondary,
+body[data-theme="dark"] .text-secondary,
+[data-bs-theme="dark"] .text-secondary {
+  color: var(--text-secondary) !important;
+}
+
+.text-dark,
+[data-theme="dark"] .text-dark,
+body[data-theme="dark"] .text-dark,
+[data-bs-theme="dark"] .text-dark {
+  color: var(--text-primary) !important;
+}
+
+.text-body-secondary,
+[data-theme="dark"] .text-body-secondary,
+body[data-theme="dark"] .text-body-secondary,
+[data-bs-theme="dark"] .text-body-secondary {
+  color: var(--text-muted) !important;
+}
+
+.text-black-50,
+[data-theme="dark"] .text-black-50,
+body[data-theme="dark"] .text-black-50 {
+  color: var(--text-muted) !important;
+}
+
+.text-muted strong,
+.text-muted b,
+.text-secondary strong,
+.text-secondary b {
+  color: var(--text-primary) !important;
+}
+
+/* Card & Section Typography Contrast Rules */
+body[data-theme="dark"] .card,
+body[data-theme="dark"] .ud-card,
+body[data-theme="dark"] .posture-result-card,
+body[data-theme="dark"] .ud-stats-glass-card,
+body[data-theme="dark"] .posture-dropzone {
+  color: var(--text-primary);
+}
+
+body[data-theme="dark"] .card p,
+body[data-theme="dark"] .ud-card p,
+body[data-theme="dark"] .posture-result-card p,
+body[data-theme="dark"] .posture-dropzone p,
+body[data-theme="dark"] .ud-hero-section p,
+body[data-theme="dark"] .ud-ai-suite-banner p {
+  color: var(--text-secondary);
+}
+
+body[data-theme="dark"] .form-label,
+body[data-theme="dark"] label {
+  color: var(--text-primary) !important;
+}
+
+body[data-theme="dark"] ::placeholder {
+  color: var(--text-muted) !important;
+  opacity: 0.85;
 }
 
 /* Custom Scrollbar */

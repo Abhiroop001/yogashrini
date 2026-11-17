@@ -23,6 +23,14 @@
     <!-- MediaPipe Pose & Camera Utils for Real-Time GPU Skeleton Tracking -->
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js" crossorigin="anonymous"></script>
+    <!-- Pre-hydration Theme Detection Script -->
+    <script>
+      (function() {
+        var t = localStorage.getItem('theme') || 'dark';
+        document.documentElement.setAttribute('data-theme', t);
+        document.documentElement.setAttribute('data-bs-theme', t);
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

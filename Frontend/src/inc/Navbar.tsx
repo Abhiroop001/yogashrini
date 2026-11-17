@@ -42,9 +42,12 @@ const Navbar: React.FC = () => {
   const location = useLocation();
 
   useEffect(() => {
-    const savedTheme = localStorage.getItem("theme") || "light";
+    const savedTheme = localStorage.getItem("theme") || "dark";
     setTheme(savedTheme);
+    document.documentElement.setAttribute("data-theme", savedTheme);
+    document.documentElement.setAttribute("data-bs-theme", savedTheme);
     document.body.setAttribute("data-theme", savedTheme);
+    document.body.setAttribute("data-bs-theme", savedTheme);
   }, []);
 
   // Close mobile drawer on route transition
@@ -56,7 +59,10 @@ const Navbar: React.FC = () => {
     const newTheme = theme === "light" ? "dark" : "light";
     setTheme(newTheme);
     localStorage.setItem("theme", newTheme);
+    document.documentElement.setAttribute("data-theme", newTheme);
+    document.documentElement.setAttribute("data-bs-theme", newTheme);
     document.body.setAttribute("data-theme", newTheme);
+    document.body.setAttribute("data-bs-theme", newTheme);
   };
 
   const handleLogout = () => {

@@ -219,9 +219,11 @@ export const Posture: React.FC = () => {
                   </div>
                 </div>
               ) : (
-                <div className="text-center py-5 text-muted">
-                  <MdAutoAwesome size={48} className="mb-2 opacity-50" />
-                  <p className="small m-0">Upload a yoga pose photo to view real-time CNN predictions and probability rankings.</p>
+                <div className="py-5 posture-empty-state">
+                  <MdAutoAwesome size={48} className="mb-2 posture-empty-icon" />
+                  <p className="small m-0 posture-empty-text">
+                    Upload a yoga pose photo to view real-time CNN predictions and probability rankings.
+                  </p>
                 </div>
               )}
             </div>

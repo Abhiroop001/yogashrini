@@ -80,6 +80,16 @@
   border-bottom: 1px solid var(--border-subtle);
 }
 
+.ud-stats-header h4 {
+  color: var(--heading-color);
+}
+
+.ud-stats-header .text-muted,
+.ud-stats-header small {
+  color: var(--text-muted) !important;
+  font-weight: 500;
+}
+
 .ud-stats-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -113,8 +123,8 @@
 
 /* ── AI Suite Banner ────────────────────────────────────────────────────── */
 .ud-ai-suite-banner {
-  background: linear-gradient(135deg, rgba(255, 45, 111, 0.08) 0%, rgba(124, 58, 237, 0.1) 100%);
-  border: 1px solid rgba(255, 45, 111, 0.2);
+  background: linear-gradient(135deg, rgba(255, 45, 111, 0.12) 0%, rgba(124, 58, 237, 0.15) 100%);
+  border: 1px solid rgba(255, 45, 111, 0.3);
   border-radius: var(--radius-lg);
   padding: clamp(16px, 3vw, 24px);
   margin-bottom: 24px;
@@ -123,6 +133,17 @@
   justify-content: space-between;
   flex-wrap: wrap;
   gap: 16px;
+}
+
+.ud-ai-suite-banner h4 {
+  color: var(--heading-color);
+}
+
+.ud-ai-suite-banner p,
+.ud-ai-suite-banner .text-muted {
+  color: var(--text-muted) !important;
+  font-size: 0.9rem;
+  line-height: 1.5;
 }
 
 .ud-ai-badge-icon {
@@ -147,6 +168,30 @@
   margin-bottom: 20px;
   box-shadow: var(--card-shadow);
   transition: transform var(--transition-smooth), box-shadow var(--transition-smooth), border-color var(--transition-smooth);
+}
+
+.ud-card h3,
+.ud-card-header h3 {
+  color: var(--heading-color);
+}
+
+.ud-card p,
+.ud-card .ud-card-body p {
+  color: var(--text-secondary);
+  font-size: 0.93rem;
+  line-height: 1.6;
+}
+
+.ud-card .text-muted,
+.ud-card p.text-muted,
+.ud-card .small.text-muted {
+  color: var(--text-muted) !important;
+}
+
+.ud-card label,
+.ud-card .form-label {
+  color: var(--text-primary) !important;
+  font-weight: 600;
 }
 
 .ud-card:hover {
