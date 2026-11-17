@@ -1,52 +1,92 @@
-/* Classes.css */
+/* Frontend/src/pages/Classes.css
+   Modern Responsive Yoga Class Schedule
+   Strict Zero Emojis - WCAG AA Contrast Compliant
+*/
 
-.classes-container {
-  margin-left: 220px; /* sidebar width */
-  padding: 40px 60px;
-  background-color: #fdfdfd;
-  font-family: "Segoe UI", sans-serif;
-  min-height: 100vh;
+.classes-page-container {
+  padding-bottom: 60px;
 }
 
-h1, h2 {
-  color: #b71c1c;
-  margin-bottom: 20px;
+.classes-hero {
+  margin-bottom: 24px;
 }
 
-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-bottom: 40px;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+.day-filter-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 8px;
+  margin-bottom: 24px;
 }
 
-th, td {
-  border: 1px solid #ddd;
-  padding: 12px 15px;
-  text-align: left;
+.day-filter-bar::-webkit-scrollbar {
+  height: 4px;
 }
 
-th {
-  background-color: #ee0b6d;
-  color: white;
-  font-weight: bold;
+.schedule-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 20px;
 }
 
-tr:nth-child(even) {
-  background-color: #f9f9f9;
+.schedule-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  box-shadow: var(--card-shadow);
+  transition: transform var(--transition-smooth), box-shadow var(--transition-smooth), border-color var(--transition-smooth);
 }
 
-tr:hover {
-  background-color: #f1f1f1;
+.schedule-card:hover {
+  border-color: var(--border-prominent);
+  box-shadow: var(--card-shadow-hover);
+  transform: translateY(-3px);
 }
 
-@media (max-width: 768px) {
-  .classes-container {
-    margin-left: 0;
-    padding: 20px;
-  }
+.schedule-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
 
-  table, th, td {
-    font-size: 14px;
+.schedule-card-title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  margin-bottom: 12px;
+  color: var(--heading-color);
+}
+
+.schedule-meta-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 18px;
+  font-size: 0.88rem;
+  color: var(--text-secondary);
+}
+
+.schedule-meta-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.schedule-card-footer {
+  padding-top: 14px;
+  border-top: 1px solid var(--border-subtle);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+@media (max-width: 600px) {
+  .schedule-grid {
+    grid-template-columns: 1fr;
   }
 }

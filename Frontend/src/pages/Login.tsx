@@ -1,8 +1,7 @@
+// src/pages/Login.tsx
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import Navbar from "../inc/Navbar";
-import Footer from "../inc/Footer";
 import { useAuth } from "../AuthContext";
 import { GiLotus } from "react-icons/gi";
 import {
@@ -101,179 +100,167 @@ export const Login: React.FC = () => {
     setMode((m) => (m === "login" ? "register" : "login"));
     setErrors({});
     setForm({ name: "", email: "", password: "", confirm: "" });
-    setToast(null);
   };
 
   return (
-    <>
-      <Navbar />
+    <div className="login-page-wrapper">
+      <motion.div
+        className="login-card-container"
+        initial={{ opacity: 0, y: 15 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
+      >
+        {/* Header */}
+        <div className="login-card-header">
+          <GiLotus size={48} style={{ color: "var(--brand-primary)" }} className="mb-2" />
+          <h2 className="fs-4 fw-bold mb-1">
+            {mode === "login" ? "Welcome to Yogashrini" : "Begin Your Journey"}
+          </h2>
+          <p className="text-secondary small m-0">
+            {mode === "login"
+              ? "Sign in to access your practice curriculum and dashboard."
+              : "Register to track posture progress and unlock video modules."}
+          </p>
+        </div>
 
-      <main className="login-page py-5">
-        {/* Toast */}
-        <AnimatePresence>
-          {toast && (
-            <motion.div
-              className={`login-toast ${toast.type === "ok" ? "toast-ok" : "toast-err"}`}
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-            >
-              {toast.type === "ok" ? <MdCheckCircle size={18} /> : <MdErrorOutline size={18} />}
-              <span>{toast.msg}</span>
-            </motion.div>
-          )}
-        </AnimatePresence>
+        {/* Tab Switcher */}
+        <div className="login-tabs">
+          <button
+            type="button"
+            className={`login-tab-btn ${mode === "login" ? "active" : ""}`}
+            onClick={() => mode !== "login" && switchMode()}
+          >
+            <MdLogin size={16} /> Sign In
+          </button>
+          <button
+            type="button"
+            className={`login-tab-btn ${mode === "register" ? "active" : ""}`}
+            onClick={() => mode !== "register" && switchMode()}
+          >
+            <MdPersonAdd size={16} /> Register
+          </button>
+        </div>
 
-        <motion.div
-          className="login-card shadow-lg rounded-4 overflow-hidden"
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.4 }}
-        >
-          {/* Header */}
-          <div className="login-card-header text-center p-4">
-            <GiLotus size={52} className="login-lotus mb-2" style={{ color: "var(--yoga-primary, #FF2D6F)" }} />
-            <h2 className="login-title fw-bold text-dark mb-1">
-              {mode === "login" ? "Welcome Back" : "Join Yogashrini"}
-            </h2>
-            <p className="login-subtitle text-muted small mb-0">
-              {mode === "login"
-                ? "Sign in to access your movement intelligence dashboard."
-                : "Create an account to begin your personal yoga practice."}
-            </p>
-          </div>
-
-          {/* Mode Switcher */}
-          <div className="login-tabs d-flex border-bottom" role="tablist">
-            <button
-              type="button"
-              role="tab"
-              className={`login-tab flex-grow-1 py-3 text-center border-0 bg-transparent fw-bold ${
-                mode === "login" ? "active border-bottom border-3 border-primary text-primary" : "text-muted"
-              }`}
-              onClick={() => mode !== "login" && switchMode()}
-            >
-              <MdLogin className="me-1" size={18} /> Sign In
-            </button>
-            <button
-              type="button"
-              role="tab"
-              className={`login-tab flex-grow-1 py-3 text-center border-0 bg-transparent fw-bold ${
-                mode === "register" ? "active border-bottom border-3 border-primary text-primary" : "text-muted"
-              }`}
-              onClick={() => mode !== "register" && switchMode()}
-            >
-              <MdPersonAdd className="me-1" size={18} /> Register
-            </button>
-          </div>
-
-          {/* Form */}
-          <form className="login-form p-4" onSubmit={handleSubmit} noValidate>
+        {/* Form Body */}
+        <form onSubmit={handleSubmit} className="login-form-body">
+          <AnimatePresence mode="wait">
             {mode === "register" && (
-              <div className="mb-3">
-                <label className="form-label small fw-bold d-flex align-items-center gap-1" htmlFor="lf-name">
-                  <MdPerson size={16} /> Full Name
-                </label>
+              <motion.div
+                key="name-field"
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+                className="login-input-group"
+              >
+                <MdPerson className="login-input-icon" size={18} />
                 <input
-                  id="lf-name"
-                  name="name"
                   type="text"
-                  placeholder="Your full name"
+                  name="name"
+                  placeholder="Full Name"
+                  className="login-input"
                   value={form.name}
                   onChange={field}
-                  className={`form-control rounded-3 ${errors.name ? "is-invalid" : ""}`}
-                  autoComplete="name"
                 />
-                {errors.name && <div className="invalid-feedback">{errors.name}</div>}
-              </div>
+                {errors.name && <div className="text-danger small mt-1">{errors.name}</div>}
+              </motion.div>
             )}
+          </AnimatePresence>
 
-            <div className="mb-3">
-              <label className="form-label small fw-bold d-flex align-items-center gap-1" htmlFor="lf-email">
-                <MdEmail size={16} /> Email Address
-              </label>
-              <input
-                id="lf-email"
-                name="email"
-                type="email"
-                placeholder="you@example.com"
-                value={form.email}
-                onChange={field}
-                className={`form-control rounded-3 ${errors.email ? "is-invalid" : ""}`}
-                autoComplete="email"
-              />
-              {errors.email && <div className="invalid-feedback">{errors.email}</div>}
-            </div>
+          <div className="login-input-group">
+            <MdEmail className="login-input-icon" size={18} />
+            <input
+              type="email"
+              name="email"
+              placeholder="Email Address"
+              className="login-input"
+              value={form.email}
+              onChange={field}
+              autoComplete="email"
+            />
+            {errors.email && <div className="text-danger small mt-1">{errors.email}</div>}
+          </div>
 
-            <div className="mb-3">
-              <label className="form-label small fw-bold d-flex align-items-center gap-1" htmlFor="lf-password">
-                <MdLock size={16} /> Password
-              </label>
-              <div className="input-group">
-                <input
-                  id="lf-password"
-                  name="password"
-                  type={showPwd ? "text" : "password"}
-                  placeholder="Password"
-                  value={form.password}
-                  onChange={field}
-                  className={`form-control rounded-start-3 ${errors.password ? "is-invalid" : ""}`}
-                  autoComplete={mode === "login" ? "current-password" : "new-password"}
-                />
-                <button
-                  type="button"
-                  className="btn btn-outline-secondary"
-                  onClick={() => setShowPwd(!showPwd)}
-                >
-                  {showPwd ? <MdVisibilityOff /> : <MdVisibility />}
-                </button>
-                {errors.password && <div className="invalid-feedback">{errors.password}</div>}
-              </div>
-            </div>
+          <div className="login-input-group">
+            <MdLock className="login-input-icon" size={18} />
+            <input
+              type={showPwd ? "text" : "password"}
+              name="password"
+              placeholder="Password (min 6 characters)"
+              className="login-input"
+              value={form.password}
+              onChange={field}
+              autoComplete={mode === "login" ? "current-password" : "new-password"}
+            />
+            <button
+              type="button"
+              className="login-pwd-toggle"
+              onClick={() => setShowPwd(!showPwd)}
+              tabIndex={-1}
+            >
+              {showPwd ? <MdVisibilityOff size={18} /> : <MdVisibility size={18} />}
+            </button>
+            {errors.password && <div className="text-danger small mt-1">{errors.password}</div>}
+          </div>
 
+          <AnimatePresence mode="wait">
             {mode === "register" && (
-              <div className="mb-4">
-                <label className="form-label small fw-bold d-flex align-items-center gap-1" htmlFor="lf-confirm">
-                  <MdLock size={16} /> Confirm Password
-                </label>
+              <motion.div
+                key="confirm-field"
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+                className="login-input-group"
+              >
+                <MdLock className="login-input-icon" size={18} />
                 <input
-                  id="lf-confirm"
-                  name="confirm"
                   type={showPwd ? "text" : "password"}
-                  placeholder="Re-enter password"
+                  name="confirm"
+                  placeholder="Confirm Password"
+                  className="login-input"
                   value={form.confirm}
                   onChange={field}
-                  className={`form-control rounded-3 ${errors.confirm ? "is-invalid" : ""}`}
                   autoComplete="new-password"
                 />
-                {errors.confirm && <div className="invalid-feedback">{errors.confirm}</div>}
-              </div>
+                {errors.confirm && <div className="text-danger small mt-1">{errors.confirm}</div>}
+              </motion.div>
             )}
+          </AnimatePresence>
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="btn btn-primary w-100 py-3 rounded-pill fw-bold shadow-sm d-flex align-items-center justify-content-center gap-2 mt-2"
-            >
-              {loading ? (
-                <>
-                  <span className="spinner-border spinner-border-sm" role="status" /> Processing...
-                </>
-              ) : mode === "login" ? (
-                <>
-                  <MdLogin /> Sign In
-                </>
-              ) : (
-                <>
-                  <MdPersonAdd /> Complete Registration
-                </>
-              )}
-            </button>
-          </form>
-        </motion.div>
-      </main>
-      <Footer />
-    </>
+          {/* Toast Notification */}
+          <AnimatePresence>
+            {toast && (
+              <motion.div
+                initial={{ opacity: 0, y: -8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                className={`alert ${toast.type === "ok" ? "alert-success" : "alert-danger"} py-2 px-3 small rounded-3 d-flex align-items-center gap-2 mb-3`}
+              >
+                {toast.type === "ok" ? <MdCheckCircle size={18} /> : <MdErrorOutline size={18} />}
+                <span>{toast.msg}</span>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          <button
+            type="submit"
+            className="btn btn-primary w-100 py-3 fw-bold mt-2"
+            disabled={loading}
+          >
+            {loading ? (
+              "Verifying..."
+            ) : mode === "login" ? (
+              <span className="d-flex align-items-center justify-content-center gap-2">
+                <MdLogin size={18} /> Sign In
+              </span>
+            ) : (
+              <span className="d-flex align-items-center justify-content-center gap-2">
+                <MdPersonAdd size={18} /> Create Account
+              </span>
+            )}
+          </button>
+        </form>
+      </motion.div>
+    </div>
   );
 };
 

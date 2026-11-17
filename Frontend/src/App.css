@@ -1,279 +1,210 @@
-/* -----------------------------------------------------
-   GLOBAL THEME VARIABLES
------------------------------------------------------ */
+/* Frontend/src/App.css
+   Modernized Global Component & Layout Styling
+   Strict Zero Emojis - Framer Motion & Responsive Utility Classes
+*/
 
-body[data-theme="light"] {
-  --bg-color: #ffffff;
-  --text-color: #222;
-  --heading-color: #111;
-  --card-bg: #f9f9f9;
-  --card-border: #e5e5e5;
-  --section-bg: #f5faff;
-  --accent: #1976d2;      /* blue */
-}
-
-body[data-theme="dark"] {
-  --bg-color: #121212;
-  --text-color: #e4e4e4;
-  --heading-color: #ffffff;
-  --card-bg: #1e1e1e;
-  --card-border: #333;
-  --section-bg: #1a1a1a;
-  --accent: #90caf9;      /* light blue */
-}
-
-body {
-  background-color: var(--bg-color);
-  color: var(--text-color);
-  transition: background 0.3s ease, color 0.3s ease;
-  font-family: "Poppins", sans-serif;
-}
-
-/* -----------------------------------------------------
-   USER DASHBOARD MAIN LOGO
------------------------------------------------------ */
-
-.container.ud {
-  text-align: center;
-  margin-top: 40px;
-  margin-bottom: 40px;
-}
-
-.logo {
-  width: 200px;
-  height: auto;
-  border-radius: 10px;
-  border: 3px solid var(--accent);
-  padding: 8px;
-  background: var(--section-bg);
-  transition: 0.3s;
-}
-
-.logo:hover {
-  transform: scale(1.03);
-}
-
-/* -----------------------------------------------------
-   SECTION STYLING
------------------------------------------------------ */
-
-.about-section,
-.values-table-section,
-.offerings-section,
-.philosophy-section,
-.studio-section,
-.teacher-training-section,
-.teachers-section,
-.why-choose-section,
-.location-section,
-.testimonials-section,
-.events-section {
-  background: var(--section-bg);
-  padding: 40px;
-  border-radius: 14px;
-  margin: 30px auto;
-  max-width: 900px;
-  box-shadow: 0 3px 10px rgba(0,0,0,0.08);
-  transition: background 0.3s ease, color 0.3s ease;
-}
-
-/* -----------------------------------------------------
-   HEADINGS
------------------------------------------------------ */
-
-h1, h2, h3 {
-  color: var(--heading-color);
-  font-weight: 700;
-  margin-bottom: 15px;
-}
-
-h2 {
-  font-size: 2rem;
-}
-
-h3 {
-  font-size: 1.6rem;
-  margin-bottom: 10px;
-}
-
-/* -----------------------------------------------------
-   TEXT + LISTS
------------------------------------------------------ */
-
-p {
-  line-height: 1.7;
-  margin-bottom: 12px;
-}
-
-ul {
-  padding-left: 20px;
-}
-
-ul li {
-  margin-bottom: 8px;
-}
-
-/* -----------------------------------------------------
-   VALUES TABLE
------------------------------------------------------ */
-
-.values-table {
+.app-wrapper {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
   width: 100%;
-  border-collapse: collapse;
-  margin-top: 20px;
-  background: var(--card-bg);
-  border-radius: 10px;
-  overflow: hidden;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  overflow-x: hidden;
 }
 
-.values-table th,
-.values-table td {
-  padding: 14px;
-  border-bottom: 1px solid var(--card-border);
+.main-content-flow {
+  flex: 1 0 auto;
+  width: 100%;
 }
 
-.values-table th {
-  background: var(--accent);
-  color: #fff;
-  font-size: 1.1rem;
+/* ── Container Consistency ────────────────────────────────────────────────── */
+.yoga-container {
+  width: 100%;
+  max-width: 1240px;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: clamp(16px, 4vw, 28px);
+  padding-right: clamp(16px, 4vw, 28px);
 }
 
-.values-table tr:last-child td {
-  border-bottom: none;
+/* ── Clean Professional Button Hierarchy (NO !important overrides) ────────── */
+button {
+  font-family: inherit;
 }
 
-/* -----------------------------------------------------
-   BLOCKQUOTES
------------------------------------------------------ */
-
-blockquote {
-  border-left: 5px solid var(--accent);
-  padding-left: 15px;
-  font-style: italic;
-  opacity: 0.9;
-  margin: 15px 0;
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-weight: 600;
+  font-size: 0.92rem;
+  padding: 10px 20px;
+  border-radius: var(--radius-md);
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  text-decoration: none;
+  line-height: 1.4;
+  white-space: nowrap;
 }
 
-/* -----------------------------------------------------
-   RESPONSIVE DESIGN
------------------------------------------------------ */
-
-@media (max-width: 768px) {
-  .values-table-section,
-  .about-section,
-  .offerings-section,
-  .philosophy-section,
-  .teacher-training-section,
-  .teachers-section,
-  .why-choose-section,
-  .location-section,
-  .testimonials-section,
-  .events-section,
-  .studio-section {
-    padding: 25px;
-  }
-
-  .logo {
-    width: 150px;
-  }
+.btn:active {
+  transform: scale(0.98);
 }
 
-
-
-
-/* ===========================
-   THEME OVERRIDES — Yogashrini logo pink
-   Place this at the end of App.css (or import after other CSS)
-   Only changes colors to match the logo
-   =========================== */
-
-/* primary palette from the logo */
-:root {
-  --yoga-primary: #FF2D6F;   /* bright magenta (logo) */
-  --yoga-primary-700: #C2185B; /* darker magenta (for accents/hover) */
-  --yoga-pill: color-mix(in srgb, #FF2D6F 8%, white); /* subtle pill bg */
+.btn-primary {
+  background: linear-gradient(135deg, var(--brand-primary) 0%, #D81B60 100%);
+  color: #FFFFFF !important;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 4px 14px rgba(255, 45, 111, 0.32);
 }
 
-/* dark theme variants */
-body[data-theme="dark"] {
-  --yoga-primary: #FF5A8E;     /* slight brightening for dark bg */
-  --yoga-primary-700: #C2185B;
-  --yoga-pill: color-mix(in srgb, #FF2D6F 6%, black);
+.btn-primary:hover {
+  background: linear-gradient(135deg, var(--brand-primary-hover) 0%, #AD1457 100%);
+  color: #FFFFFF !important;
+  box-shadow: 0 6px 20px rgba(255, 45, 111, 0.45);
+  transform: translateY(-2px);
 }
 
-/* Map existing variables your app already uses to the logo colours.
-   These will override previous definitions when this file is loaded last. */
-:root,
-body[data-theme="light"] {
-  --accent: var(--yoga-primary);
-  --accent-2: var(--yoga-primary-700);
-  --nav-hover: var(--yoga-primary);
-  --link-color: var(--yoga-primary-700);
-  --pill-bg: var(--yoga-pill);
-  --chat-header: var(--yoga-primary);
+.btn-accent {
+  background: linear-gradient(135deg, var(--brand-accent) 0%, #6D28D9 100%);
+  color: #FFFFFF !important;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 4px 14px var(--brand-accent-glow);
 }
 
-/* dark mapping (ensure chat/nav and other components get matching hues) */
-body[data-theme="dark"] {
-  --accent: var(--yoga-primary);
-  --accent-2: var(--yoga-primary-700);
-  --nav-hover: var(--yoga-primary);
-  --link-color: var(--yoga-primary-700);
-  --pill-bg: var(--yoga-pill);
-  --chat-header: var(--yoga-primary);
+.btn-accent:hover {
+  background: linear-gradient(135deg, #6D28D9 0%, #5B21B6 100%);
+  color: #FFFFFF !important;
+  box-shadow: 0 6px 20px rgba(124, 58, 237, 0.45);
+  transform: translateY(-2px);
 }
 
-/* Small specific tweaks so components using other variable names also pick the new color */
-:root, body[data-theme="light"] {
-  --nav-hover: var(--yoga-primary);
-  --chat-header: var(--yoga-primary);
-  --table-head-bg: color-mix(in srgb, var(--yoga-primary) 12%, #fff);
+.btn-secondary {
+  background-color: var(--bg-surface);
+  color: var(--text-primary) !important;
+  border: 1px solid var(--border-prominent);
 }
 
-/* Make buttons & important UI elements use the logo color by default */
-button, .btn, a.btn, .btn-primary {
-  --btn-bg: var(--yoga-primary);
-  background-color: var(--yoga-primary) !important;
-  border-color: var(--yoga-primary) !important;
-  color: #fff !important;
+.btn-secondary:hover {
+  background-color: var(--bg-surface-elevated);
+  border-color: var(--brand-primary);
+  color: var(--brand-primary) !important;
+  transform: translateY(-1px);
 }
 
-button:hover, .btn:hover, a.btn:hover, .btn-primary:hover {
-  background-color: var(--yoga-primary-700) !important;
-  border-color: var(--yoga-primary-700) !important;
+.btn-outline {
+  background: transparent;
+  color: var(--text-primary) !important;
+  border: 1px solid var(--border-prominent);
 }
 
-/* Chatbot header & floating button */
-.chatbot-btn, .chat-header, .send-btn {
-  background: var(--yoga-primary) !important;
-  color: #fff !important;
-  border-color: var(--yoga-primary) !important;
+.btn-outline:hover {
+  background-color: var(--brand-primary-subtle);
+  border-color: var(--brand-primary);
+  color: var(--brand-primary) !important;
 }
 
-/* Navbar hover & brand border */
-.brand-logo { border-color: var(--yoga-primary) !important; }
-.nav-link:hover, .nav-link.active { color: var(--yoga-primary-700) !important; }
-
-/* Pill badges and small UI chips */
-.pill, .badge, .posture-actions .btn-outline-sm {
-  background: var(--pill-bg) !important;
-  border-color: color-mix(in srgb, var(--yoga-primary) 10%, transparent);
-  color: var(--yoga-primary-700);
+.btn-ghost {
+  background: transparent;
+  color: var(--text-secondary) !important;
+  border-color: transparent;
 }
 
-/* Ensure table header accent uses the logo color where used */
-.values-table th, .contact-table th, .center-table th {
-  background-color: var(--yoga-primary) !important;
-  color: #fff !important;
+.btn-ghost:hover {
+  background: var(--brand-primary-subtle);
+  color: var(--brand-primary) !important;
 }
 
-/* small utility: focus outlines use the logo color */
-:focus-visible {
-  outline: 3px solid color-mix(in srgb, var(--yoga-primary) 24%, black) !important;
-  outline-offset: 3px;
+.btn-sm {
+  padding: 6px 14px;
+  font-size: 0.82rem;
+  border-radius: var(--radius-sm);
 }
 
-/* Reduced-motion compatibility left unchanged */
+.btn-lg {
+  padding: 14px 28px;
+  font-size: 1.05rem;
+  border-radius: var(--radius-lg);
+}
 
-/* EOF — theme overrides for Yogashrini logo */
+/* ── Badges & Chips ───────────────────────────────────────────────────────── */
+.badge-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 12px;
+  border-radius: var(--radius-full);
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.badge-primary {
+  background: var(--brand-primary-subtle);
+  color: var(--brand-primary);
+  border: 1px solid rgba(255, 45, 111, 0.25);
+}
+
+.badge-accent {
+  background: rgba(124, 58, 237, 0.12);
+  color: var(--brand-accent);
+  border: 1px solid rgba(124, 58, 237, 0.25);
+}
+
+.badge-emerald {
+  background: rgba(16, 185, 129, 0.12);
+  color: #10B981;
+  border: 1px solid rgba(16, 185, 129, 0.25);
+}
+
+/* ── Card Overrides for Dark Mode Compatibility ───────────────────────────── */
+.card {
+  background-color: var(--bg-surface) !important;
+  color: var(--text-primary) !important;
+  border: 1px solid var(--border-subtle) !important;
+  border-radius: var(--radius-lg) !important;
+  box-shadow: var(--card-shadow) !important;
+  transition: transform var(--transition-smooth), box-shadow var(--transition-smooth), border-color var(--transition-smooth);
+}
+
+.card:hover {
+  border-color: var(--border-prominent) !important;
+}
+
+/* ── Form Controls for Consistent Dark / Light Mode ───────────────────────── */
+.form-control,
+.form-select {
+  background-color: var(--bg-surface) !important;
+  color: var(--text-primary) !important;
+  border: 1.5px solid var(--border-prominent) !important;
+  border-radius: var(--radius-md) !important;
+  padding: 10px 16px;
+  font-size: 0.95rem;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.form-control:focus,
+.form-select:focus {
+  border-color: var(--brand-primary) !important;
+  box-shadow: 0 0 0 3px rgba(255, 45, 111, 0.18) !important;
+  outline: none;
+}
+
+.form-control::placeholder {
+  color: var(--text-muted) !important;
+  opacity: 0.8;
+}
+
+/* ── Global Footer ────────────────────────────────────────────────────────── */
+.yoga-global-footer {
+  background-color: var(--bg-secondary);
+  border-top: 1px solid var(--border-subtle);
+  padding: 24px 0;
+  margin-top: auto;
+  color: var(--text-muted);
+  font-size: 0.88rem;
+  text-align: center;
+}

@@ -1,8 +1,7 @@
+// src/pages/CourseDetail.tsx
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import Navbar from "../inc/Navbar";
-import Footer from "../inc/Footer";
 import {
   MdPlayCircle,
   MdLock,
@@ -61,38 +60,34 @@ export const CourseDetail: React.FC = () => {
   const [payLoading, setPayLoading] = useState<boolean>(false);
   const [msg, setMsg] = useState<{ type: string; text: string } | null>(null);
 
-  const userId = localStorage.getItem("userId") || null;
+  const userId = localStorage.getItem("uid") || "";
 
   useEffect(() => {
-    if (!id) return;
     Promise.all([
       fetch(`${API}/course/${id}`).then((r) => r.json()),
       fetch(`${API}/course/${id}/weeks`).then((r) => r.json()),
+      userId
+        ? fetch(`${API}/payment/enrollment/check/${id}?userId=${userId}`).then((r) => r.json())
+        : Promise.resolve({ enrolled: false }),
     ])
-      .then(([cd, wd]) => {
-        setCourse(cd.course);
-        setWeeks(wd.weeks || []);
+      .then(([cData, wData, eData]) => {
+        setCourse(cData.course || null);
+        setWeeks(wData.weeks || []);
+        setEnrolled(Boolean(eData.enrolled));
+        setEnrollment(eData.enrollment || null);
         setLoading(false);
       })
       .catch(() => setLoading(false));
-
-    if (userId) {
-      fetch(`${API}/payment/enrollment/check/${id}?userId=${userId}`)
-        .then((r) => r.json())
-        .then((d) => {
-          setEnrolled(d.enrolled);
-          setEnrollment(d.enrollment);
-        })
-        .catch(() => {});
-    }
   }, [id, userId]);
 
-  const handleEnroll = async () => {
+  const handleEnrollOrPay = async () => {
     if (!userId) {
       return nav("/login");
     }
 
     setPayLoading(true);
+    setMsg(null);
+
     try {
       const r = await fetch(`${API}/payment/create-order`, {
         method: "POST",
@@ -155,27 +150,21 @@ export const CourseDetail: React.FC = () => {
 
   if (loading) {
     return (
-      <>
-        <Navbar />
-        <div className="text-center py-5 my-5">
-          <div className="spinner-border text-primary" role="status" />
-          <p className="text-muted mt-2 small">Loading course details...</p>
-        </div>
-      </>
+      <div className="yoga-container text-center py-5 my-5">
+        <div className="spinner-border text-primary" role="status" />
+        <p className="text-muted mt-2 small">Loading course details...</p>
+      </div>
     );
   }
 
   if (!course) {
     return (
-      <>
-        <Navbar />
-        <div className="text-center py-5 my-5">
-          <h4>Course not found</h4>
-          <button className="btn btn-primary rounded-pill px-4 mt-3" onClick={() => nav("/courses")}>
-            Browse Courses
-          </button>
-        </div>
-      </>
+      <div className="yoga-container text-center py-5 my-5">
+        <h4>Course not found</h4>
+        <button className="btn btn-primary mt-3" onClick={() => nav("/courses")}>
+          Browse Courses
+        </button>
+      </div>
     );
   }
 
@@ -187,253 +176,224 @@ export const CourseDetail: React.FC = () => {
     bonusWeeks.reduce((s, w) => s + (w.bonusXP || 0), 0);
 
   return (
-    <>
-      <Navbar />
-      <div className="min-vh-100 bg-light">
-        {/* Hero Section */}
-        <div className="bg-dark text-white py-5">
-          <div className="container">
-            <div className="row g-4 align-items-center">
-              <div className="col-12 col-lg-7">
-                <button
-                  onClick={() => nav("/courses")}
-                  className="btn btn-sm btn-outline-light rounded-pill mb-3 d-inline-flex align-items-center gap-1"
-                >
-                  <MdArrowBack /> All Courses
-                </button>
-                <h1 className="fw-bold mb-3">{course.title}</h1>
-                <p className="text-light text-opacity-75 mb-4 lead fs-6">{course.description}</p>
-                <div className="d-flex gap-3 flex-wrap small text-light text-opacity-90">
-                  <span className="d-flex align-items-center gap-1">
-                    <MdSchool className="text-primary" /> {course.level}
+    <div className="pb-5">
+      {/* Hero Header Section */}
+      <div className="ud-hero-section mb-4">
+        <div className="yoga-container">
+          <div className="row g-4 align-items-center">
+            <div className="col-12 col-lg-7">
+              <button
+                onClick={() => nav("/courses")}
+                className="btn btn-sm btn-secondary mb-3"
+              >
+                <MdArrowBack /> All Courses
+              </button>
+              <h1 className="fw-bold mb-3 fs-2">{course.title}</h1>
+              <p className="text-secondary mb-4 lead fs-6">{course.description}</p>
+              <div className="d-flex gap-3 flex-wrap small text-secondary">
+                <span className="badge-pill badge-primary">
+                  <MdSchool /> {course.level}
+                </span>
+                <span className="badge-pill badge-emerald">
+                  <MdAccessTime /> {course.totalWeeks || regularWeeks.length} Weeks
+                </span>
+                <span className="badge-pill badge-accent">
+                  <RiAwardLine /> Up to {totalXP} XP
+                </span>
+                {bonusWeeks.length > 0 && (
+                  <span className="badge-pill badge-primary">
+                    <MdStar /> {bonusWeeks.length} Bonus Module{bonusWeeks.length !== 1 ? "s" : ""}
                   </span>
-                  <span className="d-flex align-items-center gap-1">
-                    <MdAccessTime className="text-success" /> {course.totalWeeks || regularWeeks.length} Weeks
-                  </span>
-                  <span className="d-flex align-items-center gap-1">
-                    <RiAwardLine className="text-warning" /> Up to {totalXP} XP
-                  </span>
-                  <span className="d-flex align-items-center gap-1">
-                    <MdStar className="text-warning" /> {bonusWeeks.length} Bonus Week{bonusWeeks.length !== 1 ? "s" : ""}
-                  </span>
-                </div>
+                )}
               </div>
+            </div>
 
-              {/* Enrollment Card */}
-              <div className="col-12 col-lg-5">
-                <motion.div
-                  className="card border-0 rounded-4 shadow-lg p-4 bg-white text-dark"
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ duration: 0.4 }}
-                >
-                  {course.thumbnail ? (
-                    <img
-                      src={`${API}/thumbnails/${course.thumbnail}`}
-                      alt={course.title}
-                      className="w-100 rounded-3 mb-3 object-fit-cover"
-                      style={{ height: "180px" }}
-                      onError={(e) => {
-                        e.currentTarget.style.display = "none";
-                      }}
-                    />
-                  ) : (
-                    <div
-                      className="w-100 rounded-3 mb-3 d-flex align-items-center justify-content-center bg-primary bg-opacity-10 text-primary"
-                      style={{ height: "180px" }}
-                    >
-                      <MdSchool size={64} />
-                    </div>
-                  )}
-
-                  {msg && (
-                    <div
-                      className={`alert alert-${msg.type} py-2 px-3 rounded-3 small mb-3`}
-                      role="alert"
-                    >
-                      {msg.text}
-                    </div>
-                  )}
-
-                  <div className="d-flex justify-content-between align-items-baseline mb-2">
-                    <span className="fs-3 fw-bold text-dark">
-                      {course.price === 0 ? "Complimentary" : `INR ${course.price}`}
+            {/* Enrollment / Purchase Action Box */}
+            <div className="col-12 col-lg-5">
+              <div className="card p-4">
+                <div className="d-flex align-items-baseline justify-content-between mb-3">
+                  <div>
+                    <span className="fs-3 fw-bold" style={{ color: "var(--brand-primary)" }}>
+                      {course.price === 0 ? "Free Access" : `₹${course.price}`}
                     </span>
-                    <span className="badge bg-light text-muted border">Lifetime Access</span>
+                    {course.price > 0 && (
+                      <span className="text-muted small ms-2">Full Course Access</span>
+                    )}
                   </div>
-
-                  {enrolled ? (
-                    <button
-                      onClick={() => nav(`/course/${id}/week/1`)}
-                      className="btn btn-success w-100 py-3 rounded-pill fw-bold d-flex align-items-center justify-content-center gap-2 mb-3 shadow-sm"
-                    >
-                      <MdPlayCircle size={20} /> Continue Learning
-                    </button>
-                  ) : (
-                    <button
-                      onClick={handleEnroll}
-                      disabled={payLoading}
-                      className="btn btn-primary w-100 py-3 rounded-pill fw-bold d-flex align-items-center justify-content-center gap-2 mb-3 shadow-sm"
-                    >
-                      <RiShieldCheckLine size={20} />
-                      {payLoading ? "Processing..." : course.price === 0 ? "Enroll Complimentary" : "Enroll Now"}
-                    </button>
+                  {enrolled && (
+                    <span className="badge-pill badge-emerald">
+                      <MdCheckCircle /> Enrolled
+                    </span>
                   )}
-
-                  <div className="d-flex flex-column gap-2 small text-muted pt-2 border-top">
-                    <div className="d-flex align-items-center gap-2">
-                      <MdPlayCircle className="text-primary" />
-                      {weeks.reduce((s, w) => s + (w.videos ? w.videos.length : 0), 0)} video lessons
-                    </div>
-                    <div className="d-flex align-items-center gap-2">
-                      <RiAwardLine className="text-primary" />
-                      Earn up to {totalXP} XP
-                    </div>
-                    <div className="d-flex align-items-center gap-2">
-                      <RiCoinsLine className="text-primary" />
-                      Bonus points rewards
-                    </div>
-                    <div className="d-flex align-items-center gap-2">
-                      <MdStar className="text-primary" />
-                      {bonusWeeks.length > 0 ? "Bonus modules included" : "Certificate on completion"}
-                    </div>
-                  </div>
-                </motion.div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Syllabus Section */}
-        <div className="container py-5">
-          <h3 className="fw-bold mb-4 text-dark">Course Curriculum</h3>
-
-          {/* Regular Weeks */}
-          <div className="d-flex flex-column gap-3 mb-5">
-            {regularWeeks.map((week) => {
-              const isDone = completedNums.includes(week.weekNumber);
-              const isLocked = !enrolled;
-
-              return (
-                <div
-                  key={week._id}
-                  className={`card border-0 rounded-4 shadow-sm p-3 ${
-                    enrolled ? "cursor-pointer hover-lift" : ""
-                  }`}
-                  style={{
-                    borderLeft: isDone ? "5px solid #10b981" : "5px solid var(--yoga-primary, #FF2D6F)",
-                  }}
-                  onClick={() => enrolled && nav(`/course/${id}/week/${week.weekNumber}`)}
-                >
-                  <div className="d-flex align-items-center justify-content-between flex-wrap gap-3">
-                    <div className="d-flex align-items-center gap-3">
-                      <div
-                        className="rounded-circle d-flex align-items-center justify-content-center text-white"
-                        style={{
-                          width: 44,
-                          height: 44,
-                          backgroundColor: isDone ? "#10b981" : isLocked ? "#9ca3af" : "var(--yoga-primary, #FF2D6F)",
-                        }}
-                      >
-                        {isDone ? (
-                          <MdCheckCircle size={22} />
-                        ) : isLocked ? (
-                          <MdLock size={20} />
-                        ) : (
-                          <MdPlayCircle size={22} />
-                        )}
-                      </div>
-                      <div>
-                        <div className="fw-bold text-dark d-flex align-items-center gap-2">
-                          <span className="badge bg-primary bg-opacity-10 text-primary rounded-pill px-2 py-1 small">
-                            Week {week.weekNumber}
-                          </span>
-                          {week.title}
-                        </div>
-                        {week.description && (
-                          <div className="text-muted small mt-1">{week.description}</div>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="d-flex align-items-center gap-2">
-                      <span className="badge bg-light text-primary border rounded-pill px-3 py-2 small">
-                        <RiAwardLine className="me-1" /> {week.bonusXP} XP
-                      </span>
-                      <span className="badge bg-light text-warning text-dark border rounded-pill px-3 py-2 small">
-                        <RiCoinsLine className="me-1" /> {week.bonusPoints} pts
-                      </span>
-                      <span className="text-muted small ms-2">
-                        {week.videos?.length || 0} video{week.videos?.length !== 1 ? "s" : ""}
-                      </span>
-                    </div>
-                  </div>
                 </div>
-              );
-            })}
-          </div>
 
-          {/* Bonus Weeks */}
-          {bonusWeeks.length > 0 && (
-            <div>
-              <h4 className="fw-bold mb-3 text-dark d-flex align-items-center gap-2">
-                <MdStar className="text-warning" /> Bonus Mastery Content
-              </h4>
-              <p className="text-muted small mb-4">
-                Unlocks automatically after completing all core weeks of the curriculum.
-              </p>
+                {msg && (
+                  <div className={`alert alert-${msg.type} py-2 px-3 small rounded-3 mb-3`}>
+                    {msg.text}
+                  </div>
+                )}
 
-              <div className="d-flex flex-column gap-3">
-                {bonusWeeks.map((week) => {
-                  const unlocked = Boolean(enrollment?.bonusUnlocked);
-                  return (
-                    <div
-                      key={week._id}
-                      className="card border-0 rounded-4 shadow-sm p-3"
-                      style={{ borderLeft: "5px solid #f59e0b" }}
-                      onClick={() => unlocked && nav(`/course/${id}/week/${week.weekNumber}`)}
-                    >
-                      <div className="d-flex align-items-center justify-content-between flex-wrap gap-3">
-                        <div className="d-flex align-items-center gap-3">
-                          <div
-                            className="rounded-circle d-flex align-items-center justify-content-center text-white"
-                            style={{
-                              width: 44,
-                              height: 44,
-                              backgroundColor: unlocked ? "#f59e0b" : "#9ca3af",
-                            }}
-                          >
-                            {unlocked ? <MdStar size={22} /> : <MdLock size={20} />}
-                          </div>
-                          <div>
-                            <div className="fw-bold text-dark d-flex align-items-center gap-2">
-                              <span className="badge bg-warning bg-opacity-25 text-dark rounded-pill px-2 py-1 small">
-                                BONUS
-                              </span>
-                              {week.title}
-                            </div>
-                            {!unlocked && (
-                              <div className="text-muted small mt-1">
-                                Complete all core weeks to unlock this module.
-                              </div>
-                            )}
-                          </div>
-                        </div>
+                {enrolled ? (
+                  <button
+                    className="btn btn-primary w-100 py-3 fw-bold"
+                    onClick={() => nav(`/course/${id}/week/1`)}
+                  >
+                    <MdPlayCircle size={20} /> Continue Learning
+                  </button>
+                ) : (
+                  <button
+                    className="btn btn-primary w-100 py-3 fw-bold"
+                    onClick={handleEnrollOrPay}
+                    disabled={payLoading}
+                  >
+                    {payLoading ? (
+                      "Processing..."
+                    ) : course.price === 0 ? (
+                      "Enroll for Free"
+                    ) : (
+                      `Enroll Now · ₹${course.price}`
+                    )}
+                  </button>
+                )}
 
-                        <span className="badge bg-light text-warning text-dark border rounded-pill px-3 py-2 small">
-                          <RiAwardLine className="me-1" /> {week.bonusXP} XP
-                        </span>
-                      </div>
-                    </div>
-                  );
-                })}
+                <div className="d-flex align-items-center justify-content-center gap-2 mt-3 text-muted small">
+                  <RiShieldCheckLine size={16} /> 30-Day Guided Practice & Certification
+                </div>
               </div>
             </div>
-          )}
+          </div>
         </div>
       </div>
-      <Footer />
-    </>
+
+      {/* Course Curriculum Weeks */}
+      <main className="yoga-container">
+        <h3 className="fw-bold mb-4 fs-4">Curriculum & Video Modules</h3>
+
+        <div className="d-flex flex-column gap-3 mb-5">
+          {regularWeeks.map((week) => {
+            const isDone = completedNums.includes(week.weekNumber);
+            const isLocked = !enrolled;
+
+            return (
+              <div
+                key={week._id}
+                className="card p-3"
+                style={{
+                  borderLeft: isDone ? "5px solid #10b981" : "5px solid var(--brand-primary)",
+                  cursor: enrolled ? "pointer" : "default",
+                }}
+                onClick={() => enrolled && nav(`/course/${id}/week/${week.weekNumber}`)}
+              >
+                <div className="d-flex align-items-center justify-content-between flex-wrap gap-3">
+                  <div className="d-flex align-items-center gap-3">
+                    <div
+                      className="rounded-circle d-flex align-items-center justify-content-center text-white"
+                      style={{
+                        width: 44,
+                        height: 44,
+                        backgroundColor: isDone ? "#10b981" : isLocked ? "var(--border-prominent)" : "var(--brand-primary)",
+                      }}
+                    >
+                      {isDone ? (
+                        <MdCheckCircle size={22} />
+                      ) : isLocked ? (
+                        <MdLock size={20} />
+                      ) : (
+                        <MdPlayCircle size={22} />
+                      )}
+                    </div>
+                    <div>
+                      <div className="fw-bold d-flex align-items-center gap-2">
+                        <span className="badge-pill badge-primary">
+                          Week {week.weekNumber}
+                        </span>
+                        {week.title}
+                      </div>
+                      {week.description && (
+                        <div className="text-secondary small mt-1">{week.description}</div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="d-flex align-items-center gap-2">
+                    <span className="badge-pill badge-accent">
+                      <RiAwardLine /> {week.bonusXP} XP
+                    </span>
+                    <span className="badge-pill badge-emerald">
+                      <RiCoinsLine /> {week.bonusPoints} pts
+                    </span>
+                    <span className="text-muted small ms-2">
+                      {week.videos?.length || 0} video{week.videos?.length !== 1 ? "s" : ""}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Bonus Modules */}
+        {bonusWeeks.length > 0 && (
+          <div>
+            <h4 className="fw-bold mb-2 fs-5 d-flex align-items-center gap-2">
+              <MdStar style={{ color: "var(--brand-amber)" }} /> Bonus Mastery Content
+            </h4>
+            <p className="text-muted small mb-3">
+              Unlocks automatically after completing all core weeks of the curriculum.
+            </p>
+
+            <div className="d-flex flex-column gap-3">
+              {bonusWeeks.map((week) => {
+                const unlocked = Boolean(enrollment?.bonusUnlocked);
+                return (
+                  <div
+                    key={week._id}
+                    className="card p-3"
+                    style={{
+                      borderLeft: "5px solid var(--brand-amber)",
+                      cursor: unlocked ? "pointer" : "default",
+                    }}
+                    onClick={() => unlocked && nav(`/course/${id}/week/${week.weekNumber}`)}
+                  >
+                    <div className="d-flex align-items-center justify-content-between flex-wrap gap-3">
+                      <div className="d-flex align-items-center gap-3">
+                        <div
+                          className="rounded-circle d-flex align-items-center justify-content-center text-white"
+                          style={{
+                            width: 44,
+                            height: 44,
+                            backgroundColor: unlocked ? "var(--brand-amber)" : "var(--border-prominent)",
+                          }}
+                        >
+                          {unlocked ? <MdStar size={22} /> : <MdLock size={20} />}
+                        </div>
+                        <div>
+                          <div className="fw-bold d-flex align-items-center gap-2">
+                            <span className="badge-pill badge-primary">
+                              BONUS
+                            </span>
+                            {week.title}
+                          </div>
+                          {!unlocked && (
+                            <div className="text-muted small mt-1">
+                              Complete all core weeks to unlock this module.
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      <span className="badge-pill badge-accent">
+                        <RiAwardLine /> {week.bonusXP} XP
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </main>
+    </div>
   );
 };
 

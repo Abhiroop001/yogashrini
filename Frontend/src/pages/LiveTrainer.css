@@ -134,6 +134,10 @@
   gap: 24px;
 }
 
+.lt-grid.focus-mode {
+  grid-template-columns: 1fr;
+}
+
 @media (max-width: 992px) {
   .lt-grid {
     grid-template-columns: 1fr;

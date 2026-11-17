@@ -1,18 +1,17 @@
+// src/pages/Courses.tsx
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import Navbar from "../inc/Navbar";
-import Footer from "../inc/Footer";
 import { MdStar, MdPlayCircle, MdSchool, MdAccessTime, MdFilterList, MdSearch } from "react-icons/md";
 import { RiAwardLine } from "react-icons/ri";
 import { Course } from "../types";
 
 const API = "http://localhost:2000";
 
-const levelColor: Record<string, { bg: string; color: string }> = {
-  Beginner: { bg: "#ecfdf5", color: "#065f46" },
-  Intermediate: { bg: "#fffbeb", color: "#92400e" },
-  Advanced: { bg: "#fef2f2", color: "#991b1b" },
+const levelBadgeClass: Record<string, string> = {
+  Beginner: "badge-emerald",
+  Intermediate: "badge-primary",
+  Advanced: "badge-accent",
 };
 
 export const Courses: React.FC = () => {
@@ -41,47 +40,41 @@ export const Courses: React.FC = () => {
   });
 
   return (
-    <>
-      <Navbar />
-
-      {/* Hero */}
+    <div className="pb-5">
+      {/* Hero Header */}
       <motion.div
-        className="ud-hero mb-4"
-        initial={{ opacity: 0, y: -20 }}
+        className="ud-hero-section mb-4"
+        initial={{ opacity: 0, y: -15 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
+        transition={{ duration: 0.4 }}
       >
-        <div className="ud-hero-inner container">
-          <div className="ud-hero-left">
-            <MdSchool size={64} style={{ color: "var(--yoga-primary, #FF2D6F)" }} />
-            <div className="ud-hero-title-wrap">
-              <h1 className="ud-title">Comprehensive Yoga Curriculum</h1>
-              <p className="ud-subtitle">
-                Master classical yoga, pranayama, and meditation through structured multi-week progressive video
-                courses guided by seasoned masters.
+        <div className="yoga-container">
+          <div className="d-flex align-items-center gap-3">
+            <div className="ud-ai-badge-icon">
+              <MdSchool size={28} />
+            </div>
+            <div>
+              <h1 className="m-0 fs-3 fw-bold">Comprehensive Yoga Curriculum</h1>
+              <p className="text-secondary small m-0 mt-1">
+                Master classical yoga, pranayama, and meditation through structured multi-week progressive video courses.
               </p>
-              <div className="posture-hero-badges">
-                <span className="posture-badge">Multi-Week Roadmaps</span>
-                <span className="posture-badge">Self-Paced Practice</span>
-                <span className="posture-badge">Certificate of Completion</span>
-              </div>
             </div>
           </div>
         </div>
       </motion.div>
 
-      <main className="container pb-5">
-        {/* Controls */}
-        <div className="card border-0 shadow-sm rounded-4 p-3 mb-4">
+      <main className="yoga-container">
+        {/* Controls Bar */}
+        <div className="card p-3 mb-4">
           <div className="row g-3 align-items-center">
             <div className="col-12 col-md-6">
               <div className="input-group">
-                <span className="input-group-text bg-light border-0">
-                  <MdSearch className="text-muted" />
+                <span className="input-group-text" style={{ background: "var(--bg-secondary)", borderColor: "var(--border-prominent)" }}>
+                  <MdSearch style={{ color: "var(--text-muted)" }} size={18} />
                 </span>
                 <input
                   type="text"
-                  className="form-control bg-light border-0"
+                  className="form-control"
                   placeholder="Search courses by keyword..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
@@ -90,15 +83,15 @@ export const Courses: React.FC = () => {
             </div>
 
             <div className="col-12 col-md-6">
-              <div className="d-flex align-items-center justify-content-md-end gap-2 overflow-auto">
-                <span className="text-muted small fw-bold d-flex align-items-center gap-1 text-nowrap">
+              <div className="d-flex align-items-center justify-content-md-end gap-2 overflow-auto pb-1">
+                <span className="small fw-bold text-muted d-flex align-items-center gap-1 text-nowrap">
                   <MdFilterList /> Level:
                 </span>
                 {["All", "Beginner", "Intermediate", "Advanced"].map((lvl) => (
                   <button
                     key={lvl}
-                    className={`btn btn-sm rounded-pill px-3 text-nowrap ${
-                      filter === lvl ? "btn-primary shadow-sm" : "btn-light"
+                    className={`btn btn-sm ${
+                      filter === lvl ? "btn-primary" : "btn-secondary"
                     }`}
                     onClick={() => setFilter(lvl)}
                   >
@@ -110,21 +103,21 @@ export const Courses: React.FC = () => {
           </div>
         </div>
 
-        {/* Content */}
+        {/* Content Section */}
         {loading ? (
           <div className="text-center py-5">
             <div className="spinner-border text-primary" role="status">
-              <span className="visually-hidden">Loading courses...</span>
+              <span className="visually-hidden">Loading...</span>
             </div>
             <p className="text-muted mt-2 small">Loading curriculum library...</p>
           </div>
         ) : filtered.length === 0 ? (
-          <div className="text-center py-5 card border-0 shadow-sm rounded-4 p-5">
-            <h5 className="fw-bold text-dark">No courses match your filter</h5>
-            <p className="text-muted small">Try modifying your search keywords or level filter.</p>
+          <div className="card text-center py-5 p-4">
+            <h5 className="fw-bold mb-1">No courses match your filter</h5>
+            <p className="text-muted small mb-3">Try modifying your search keywords or level filter.</p>
             <div>
               <button
-                className="btn btn-primary rounded-pill px-4"
+                className="btn btn-secondary btn-sm"
                 onClick={() => {
                   setSearch("");
                   setFilter("All");
@@ -138,7 +131,7 @@ export const Courses: React.FC = () => {
           <div className="row g-4">
             <AnimatePresence>
               {filtered.map((course, idx) => {
-                const badge = levelColor[course.level] || { bg: "#f3f4f6", color: "#374151" };
+                const badgeClass = levelBadgeClass[course.level] || "badge-primary";
                 return (
                   <motion.div
                     key={course._id}
@@ -146,14 +139,14 @@ export const Courses: React.FC = () => {
                     initial={{ opacity: 0, y: 15 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.95 }}
-                    transition={{ duration: 0.3, delay: idx * 0.05 }}
+                    transition={{ duration: 0.25, delay: idx * 0.04 }}
                   >
                     <div
-                      className="card h-100 border-0 shadow-sm rounded-4 overflow-hidden d-flex flex-column hover-lift"
+                      className="card h-100 overflow-hidden d-flex flex-column"
                       style={{ cursor: "pointer" }}
                       onClick={() => nav(`/course/${course._id}`)}
                     >
-                      <div className="position-relative" style={{ height: "190px", backgroundColor: "#e2e8f0" }}>
+                      <div className="position-relative" style={{ height: "190px", backgroundColor: "var(--bg-secondary)" }}>
                         {course.thumbnail ? (
                           <img
                             src={course.thumbnail}
@@ -165,39 +158,29 @@ export const Courses: React.FC = () => {
                             <MdSchool size={48} className="opacity-25" />
                           </div>
                         )}
-                        <span
-                          className="position-absolute top-0 start-0 m-3 px-3 py-1 rounded-pill small fw-bold"
-                          style={{ backgroundColor: badge.bg, color: badge.color }}
-                        >
+                        <span className={`position-absolute top-0 start-0 m-3 badge-pill ${badgeClass}`}>
                           {course.level}
                         </span>
-                        <span className="position-absolute bottom-0 end-0 m-3 badge bg-dark bg-opacity-75 rounded-pill px-3 py-1 small d-flex align-items-center gap-1">
-                          <MdAccessTime /> {course.durationWeeks ? `${course.durationWeeks} Weeks` : "Self-Paced"}
+                        <span className="position-absolute bottom-0 end-0 m-3 badge bg-dark bg-opacity-75 rounded-pill px-3 py-1 small d-flex align-items-center gap-1 text-white">
+                          <MdAccessTime size={14} /> {course.durationWeeks ? `${course.durationWeeks} Weeks` : "Self-Paced"}
                         </span>
                       </div>
 
                       <div className="card-body p-4 d-flex flex-column flex-grow-1">
-                        <h5 className="fw-bold text-dark mb-2">{course.title}</h5>
-                        <p className="text-muted small mb-3 flex-grow-1" style={{ lineClamp: 2, display: "-webkit-box", WebkitBoxOrient: "vertical", overflow: "hidden" }}>
-                          {course.description || "Structured yogic training modules with step-by-step guidance."}
+                        <h5 className="fw-bold mb-2">{course.title}</h5>
+                        <p className="text-secondary small flex-grow-1" style={{ display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
+                          {course.description}
                         </p>
 
-                        <div className="d-flex align-items-center justify-content-between pt-3 border-top">
+                        <div className="d-flex align-items-center justify-content-between pt-3 mt-auto border-top">
                           <div>
-                            <span className="text-muted small d-block">Tuition</span>
-                            <span className="fw-bold text-dark fs-5">
-                              {course.price ? `INR ${course.price}` : "Complimentary"}
+                            <span className="fs-5 fw-bold" style={{ color: "var(--brand-primary)" }}>
+                              {course.price === 0 ? "Free" : `₹${course.price}`}
                             </span>
                           </div>
-                          <button
-                            className="btn btn-outline-primary rounded-pill px-3 d-flex align-items-center gap-1"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              nav(`/course/${course._id}`);
-                            }}
-                          >
-                            <MdPlayCircle /> Explore
-                          </button>
+                          <span className="btn btn-primary btn-sm">
+                            <MdPlayCircle size={16} /> View Course
+                          </span>
                         </div>
                       </div>
                     </div>
@@ -208,8 +191,7 @@ export const Courses: React.FC = () => {
           </div>
         )}
       </main>
-      <Footer />
-    </>
+    </div>
   );
 };
 

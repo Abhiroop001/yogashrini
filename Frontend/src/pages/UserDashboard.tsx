@@ -6,11 +6,8 @@
 
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import "../App.css";
 import "./UserDashboard.css";
 import Yoga from "./Yogashrini.jpg";
-import Navbar from "../inc/Navbar";
-import Footer from "../inc/Footer";
 
 import { GiLotus, GiMeditation, GiYinYang } from "react-icons/gi";
 import {
@@ -26,7 +23,8 @@ import {
   MdWarning,
   MdClose,
   MdPrint,
-  MdVideocam
+  MdVideocam,
+  MdArrowForward
 } from "react-icons/md";
 import { FaLeaf } from "react-icons/fa";
 
@@ -39,14 +37,14 @@ interface SectionCardProps {
 
 const SectionCard: React.FC<SectionCardProps> = ({ title, children, icon, action }) => (
   <motion.section
-    whileHover={{ y: -3 }}
+    whileHover={{ y: -2 }}
     transition={{ duration: 0.2 }}
     className="ud-card"
   >
     <div className="ud-card-header">
       <div className="d-flex align-items-center gap-3">
         <div className="ud-card-icon">{icon}</div>
-        <h3 className="m-0">{title}</h3>
+        <h3 className="m-0 fs-5 fw-bold">{title}</h3>
       </div>
       {action && <div>{action}</div>}
     </div>
@@ -141,8 +139,8 @@ const UserDashboard: React.FC = () => {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          poseName: "Vrikshasana",
-          conditions: [healthCondition]
+          condition: healthCondition,
+          intendedAsanas: ["Vrikshasana", "Adho Mukha Svanasana"]
         })
       });
       const data = await resp.json();
@@ -157,113 +155,111 @@ const UserDashboard: React.FC = () => {
   };
 
   return (
-    <>
-      <Navbar />
-
-      {/* HERO SECTION */}
-      <header className="ud-hero">
-        <div className="ud-hero-inner container">
-          <motion.div
-            initial={{ opacity: 0, x: -30 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.4 }}
-            className="ud-hero-left"
-          >
-            <img src={Yoga} alt="Yogashrini" className="ud-hero-logo" />
-            <div className="ud-hero-title-wrap">
-              <h1 className="ud-title">YOGASHRINI YOGA SCHOOL</h1>
-              <p className="ud-subtitle">
-                A sanctuary for self-discovery and transformation integrating traditional practice with modern movement science.
-              </p>
-
-              <div className="ud-cta-group">
-                <a className="btn btn-primary btn-lg d-inline-flex align-items-center gap-2" href="/live-trainer">
-                  <MdVideocam size={20} /> AI Live Pose Trainer
-                </a>
-                <button
-                  className="btn btn-outline-secondary btn-lg d-inline-flex align-items-center gap-2"
-                  onClick={() => setReportModalOpen(true)}
-                >
-                  <MdAssessment size={20} /> Generate AI Wellness Report
-                </button>
-              </div>
-            </div>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, x: 30 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.4 }}
-            className="ud-hero-right"
-          >
-            <div className="ud-hero-card">
-              <div className="ud-hero-card-top">
-                <GiLotus size={40} style={{ color: "var(--yoga-primary, #FF2D6F)" }} />
-                <div>
-                  <strong>Yogashrini School</strong>
-                  <div className="muted">Authentic · Inclusive · Transformative</div>
+    <div className="ud-page-wrapper">
+      {/* RESPONSIVE SPLIT HERO */}
+      <header className="ud-hero-section">
+        <div className="yoga-container">
+          <div className="ud-hero-split">
+            <motion.div
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4 }}
+              className="ud-hero-lead-col"
+            >
+              <img src={Yoga} alt="Yogashrini" className="ud-brand-emblem" />
+              <div>
+                <h1 className="ud-hero-headline">YOGASHRINI YOGA SCHOOL</h1>
+                <p className="ud-hero-description">
+                  A sanctuary for self-discovery and transformation integrating classical yogic lineages with real-time computer vision movement intelligence.
+                </p>
+                <div className="ud-hero-actions-row">
+                  <a className="btn btn-primary" href="/live-trainer">
+                    <MdVideocam size={18} /> Live AI Pose Trainer
+                  </a>
+                  <button
+                    className="btn btn-secondary"
+                    onClick={() => setReportModalOpen(true)}
+                  >
+                    <MdAssessment size={18} /> Generate AI Wellness Report
+                  </button>
                 </div>
               </div>
+            </motion.div>
 
-              <div className="ud-stats">
-                <div className="stat">
-                  <div className="stat-num">10+</div>
-                  <div className="stat-label">Years of Practice</div>
+            <motion.div
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, delay: 0.1 }}
+            >
+              <div className="ud-stats-glass-card">
+                <div className="ud-stats-header">
+                  <GiLotus size={32} style={{ color: "var(--brand-primary)" }} />
+                  <div>
+                    <h4 className="m-0 fs-6 fw-bold">Yogashrini Platform</h4>
+                    <div className="small text-muted">Authentic · Inclusive · Rigorous</div>
+                  </div>
                 </div>
-                <div className="stat">
-                  <div className="stat-num">47</div>
-                  <div className="stat-label">Pose Classes</div>
-                </div>
-                <div className="stat">
-                  <div className="stat-num">3</div>
-                  <div className="stat-label">Expert Teachers</div>
+
+                <div className="ud-stats-grid">
+                  <div className="ud-stat-item">
+                    <div className="ud-stat-number">10+</div>
+                    <div className="ud-stat-label">Years of Mastery</div>
+                  </div>
+                  <div className="ud-stat-item">
+                    <div className="ud-stat-number">47</div>
+                    <div className="ud-stat-label">Class Catalog</div>
+                  </div>
+                  <div className="ud-stat-item">
+                    <div className="ud-stat-number">84.9%</div>
+                    <div className="ud-stat-label">CV Accuracy</div>
+                  </div>
                 </div>
               </div>
-            </div>
-          </motion.div>
+            </motion.div>
+          </div>
         </div>
       </header>
 
-      <main className="ud-main container">
+      <main className="yoga-container">
         {/* AI INTELLIGENCE SUITE BANNER */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, delay: 0.1 }}
+          transition={{ duration: 0.35 }}
           className="ud-ai-suite-banner"
         >
           <div className="d-flex align-items-center gap-3">
             <div className="ud-ai-badge-icon">
-              <MdAutoAwesome size={26} />
+              <MdAutoAwesome size={24} />
             </div>
             <div>
-              <h4 className="m-0 fw-bold">Yogashrini Movement Intelligence Suite</h4>
+              <h4 className="m-0 fs-6 fw-bold">Yogashrini Movement Intelligence Suite</h4>
               <p className="m-0 text-muted small">
-                Clinical biomechanical diagnostics, adaptive practice protocol synthesizer, and anatomical safety auditing powered by LLM inference.
+                Clinical biomechanical diagnostics, adaptive practice protocol synthesizer, and anatomical safety scanner.
               </p>
             </div>
           </div>
           <button
-            className="btn btn-primary d-inline-flex align-items-center gap-2"
+            className="btn btn-primary btn-sm"
             onClick={() => setReportModalOpen(true)}
           >
-            <MdAssessment size={18} /> Request Clinical Assessment Report
+            <MdAssessment size={16} /> Request Clinical Assessment
           </button>
         </motion.div>
 
         {/* TWO-COLUMN INTERACTIVE AI MODULES */}
         <div className="row g-4 mb-4">
           {/* Module 1: Daily Routine Protocol Synthesizer */}
-          <div className="col-lg-6">
+          <div className="col-12 col-lg-6">
             <SectionCard
               title="AI Daily Practice Synthesizer"
-              icon={<MdFitnessCenter size={24} style={{ color: "var(--yoga-primary, #FF2D6F)" }} />}
+              icon={<MdFitnessCenter size={22} style={{ color: "var(--brand-primary)" }} />}
             >
               <p className="text-muted small">
                 Dynamically construct a customized sequence tailored to your physiological state, available duration, and somatic focus.
               </p>
               <div className="row g-2 mb-3">
-                <div className="col-sm-4">
+                <div className="col-12 col-sm-4">
                   <label className="form-label small fw-bold">Duration</label>
                   <select
                     className="form-select form-select-sm"
@@ -276,7 +272,7 @@ const UserDashboard: React.FC = () => {
                     <option value="45">45 Minutes</option>
                   </select>
                 </div>
-                <div className="col-sm-4">
+                <div className="col-12 col-sm-4">
                   <label className="form-label small fw-bold">Focus Area</label>
                   <select
                     className="form-select form-select-sm"
@@ -286,10 +282,10 @@ const UserDashboard: React.FC = () => {
                     <option value="Spine Elongation and Hip Flexibility">Spine & Hips</option>
                     <option value="Balance and Proprioception Mastery">Balance & Focus</option>
                     <option value="Nervous System Parasympathetic Reset">Stress Reset</option>
-                    <option value="Core Stability and Lower Kinetic Chain">Core & Lower Body</option>
+                    <option value="Core Stability and Lower Kinetic Chain">Core & Legs</option>
                   </select>
                 </div>
-                <div className="col-sm-4">
+                <div className="col-12 col-sm-4">
                   <label className="form-label small fw-bold">Energy</label>
                   <select
                     className="form-select form-select-sm"
@@ -304,7 +300,7 @@ const UserDashboard: React.FC = () => {
               </div>
 
               <button
-                className="btn btn-outline-primary btn-sm w-100 d-inline-flex align-items-center justify-content-center gap-2"
+                className="btn btn-outline btn-sm w-100"
                 onClick={handleGenerateRoutine}
                 disabled={routineLoading}
               >
@@ -324,13 +320,13 @@ const UserDashboard: React.FC = () => {
           </div>
 
           {/* Module 2: Contraindication Safety Scanner */}
-          <div className="col-lg-6">
+          <div className="col-12 col-lg-6">
             <SectionCard
               title="Contraindication & Safety Scanner"
-              icon={<MdHealthAndSafety size={24} style={{ color: "var(--yoga-primary, #FF2D6F)" }} />}
+              icon={<MdHealthAndSafety size={22} style={{ color: "var(--brand-primary)" }} />}
             >
               <p className="text-muted small">
-                Evaluate prospective asana sequences against specific musculoskeletal symptoms, surgeries, or systemic health conditions.
+                Evaluate prospective asana sequences against specific musculoskeletal symptoms or systemic health conditions.
               </p>
               <div className="mb-3">
                 <label className="form-label small fw-bold">Enter Symptom or Medical Condition</label>
@@ -338,7 +334,7 @@ const UserDashboard: React.FC = () => {
                   <input
                     type="text"
                     className="form-control"
-                    placeholder="e.g. Lumbar disc herniation, Meniscus tear, Hypertension..."
+                    placeholder="e.g. Lumbar disc herniation, Knee pain..."
                     value={healthCondition}
                     onChange={(e) => setHealthCondition(e.target.value)}
                     onKeyDown={(e) => e.key === "Enter" && handleCheckSafety()}
@@ -354,9 +350,9 @@ const UserDashboard: React.FC = () => {
               </div>
 
               <div className="d-flex gap-2 flex-wrap mb-2">
-                <span className="badge bg-light text-dark border cursor-pointer" onClick={() => setHealthCondition("Lower back pain")}>Lower back pain</span>
-                <span className="badge bg-light text-dark border cursor-pointer" onClick={() => setHealthCondition("Knee ligament strain")}>Knee ligament strain</span>
-                <span className="badge bg-light text-dark border cursor-pointer" onClick={() => setHealthCondition("Carpal tunnel syndrome")}>Carpal tunnel syndrome</span>
+                <span className="badge-pill badge-primary" style={{ cursor: "pointer" }} onClick={() => setHealthCondition("Lower back pain")}>Lower back pain</span>
+                <span className="badge-pill badge-primary" style={{ cursor: "pointer" }} onClick={() => setHealthCondition("Knee ligament strain")}>Knee strain</span>
+                <span className="badge-pill badge-primary" style={{ cursor: "pointer" }} onClick={() => setHealthCondition("Carpal tunnel syndrome")}>Carpal tunnel</span>
               </div>
 
               {safetyResult && (
@@ -374,64 +370,66 @@ const UserDashboard: React.FC = () => {
         {/* CORE INSTITUTIONAL SECTIONS */}
         <SectionCard
           title="About Yogashrini Yoga School"
-          icon={<GiMeditation size={28} style={{ color: "var(--yoga-primary, #FF2D6F)" }} />}
+          icon={<GiMeditation size={24} style={{ color: "var(--brand-primary)" }} />}
         >
-          <p>
+          <p className="text-secondary m-0">
             Yogashrini is more than a yoga school; it is a center for self-discovery, restorative movement,
             and transformation. We synthesize time-tested yogic lineage with contemporary kinesiological research.
           </p>
         </SectionCard>
 
-        <SectionCard title="Core Institutional Values" icon={<GiYinYang size={26} style={{ color: "var(--yoga-primary, #FF2D6F)" }} />}>
-          <table className="values-table">
-            <thead>
-              <tr>
-                <th>Principle</th>
-                <th>Application and Description</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr><td>Authenticity</td><td>Rooted in traditional Hatha, Vinyasa, and Patanjali classical yoga.</td></tr>
-              <tr><td>Inclusivity</td><td>Individualized biomechanical modifications suitable for all physiological constitutions.</td></tr>
-              <tr><td>Scientific Rigor</td><td>Computer vision pose verification and kinematic angle validation.</td></tr>
-              <tr><td>Transformative Growth</td><td>Integrates breath regulation (Pranayama) and focused meditation (Dharana).</td></tr>
-            </tbody>
-          </table>
+        <SectionCard title="Core Institutional Values" icon={<GiYinYang size={24} style={{ color: "var(--brand-primary)" }} />}>
+          <div className="table-responsive">
+            <table className="values-table">
+              <thead>
+                <tr>
+                  <th>Principle</th>
+                  <th>Application and Description</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><td>Authenticity</td><td>Rooted in traditional Hatha, Vinyasa, and Patanjali classical yoga.</td></tr>
+                <tr><td>Inclusivity</td><td>Individualized biomechanical modifications suitable for all physiological constitutions.</td></tr>
+                <tr><td>Scientific Rigor</td><td>Computer vision pose verification and kinematic angle validation.</td></tr>
+                <tr><td>Transformative Growth</td><td>Integrates breath regulation (Pranayama) and focused meditation (Dharana).</td></tr>
+              </tbody>
+            </table>
+          </div>
         </SectionCard>
 
-        <div className="grid-3">
-          <SectionCard title="Curricular Offerings" icon={<FaLeaf size={22} style={{ color: "var(--yoga-primary, #FF2D6F)" }} />}>
-            <ul className="offerings-list">
-              <li>Daily classical Hatha and dynamic Vinyasa sessions</li>
-              <li>Immersive weekend retreats and anatomical workshops</li>
-              <li>Yoga Alliance certified 200-Hour Teacher Training</li>
+        <div className="grid-3 mb-4">
+          <SectionCard title="Curricular Offerings" icon={<FaLeaf size={20} style={{ color: "var(--brand-primary)" }} />}>
+            <ul className="text-secondary ps-3 m-0 small">
+              <li className="mb-1">Daily classical Hatha and dynamic Vinyasa sessions</li>
+              <li className="mb-1">Immersive weekend retreats and anatomical workshops</li>
+              <li className="mb-1">Yoga Alliance certified 200-Hour Teacher Training</li>
               <li>Real-time Computer Vision posture coaching</li>
             </ul>
           </SectionCard>
 
-          <SectionCard title="Teacher Training" icon={<MdSchool size={26} style={{ color: "var(--yoga-primary, #FF2D6F)" }} />}>
-            <p>
-              Our flagship training programs prepare thoughtful, scientifically grounded educators equipped with classical pedagogy and injury mitigation skills.
+          <SectionCard title="Teacher Training" icon={<MdSchool size={22} style={{ color: "var(--brand-primary)" }} />}>
+            <p className="text-secondary small mb-3">
+              Our flagship training programs prepare thoughtful, scientifically grounded educators equipped with classical pedagogy.
             </p>
-            <a className="btn btn-outline-primary btn-sm" href="/training">Explore Curriculum</a>
+            <a className="btn btn-outline btn-sm" href="/training">Explore Curriculum <MdArrowForward size={14} /></a>
           </SectionCard>
 
-          <SectionCard title="Facilities & Studio" icon={<MdLocationOn size={26} style={{ color: "var(--yoga-primary, #FF2D6F)" }} />}>
-            <ul>
-              <li>Spacious practice shala with natural light</li>
-              <li>Eco-certified cork mats, bolsters, and straps</li>
+          <SectionCard title="Facilities & Studio" icon={<MdLocationOn size={22} style={{ color: "var(--brand-primary)" }} />}>
+            <ul className="text-secondary ps-3 m-0 small">
+              <li className="mb-1">Spacious practice shala with natural light</li>
+              <li className="mb-1">Eco-certified cork mats, bolsters, and straps</li>
               <li>Dedicated silent meditation garden</li>
             </ul>
           </SectionCard>
         </div>
 
-        <SectionCard title="Faculty Mentors" icon={<MdPeople size={26} style={{ color: "var(--yoga-primary, #FF2D6F)" }} />}>
+        <SectionCard title="Faculty Mentors" icon={<MdPeople size={24} style={{ color: "var(--brand-primary)" }} />}>
           <div className="teacher-list">
             <div className="teacher">
               <div className="avatar">A</div>
               <div>
                 <strong>Anjali</strong>
-                <div className="muted">Classical Hatha Master · 15+ Years</div>
+                <div className="text-muted small">Classical Hatha Master · 15+ Years</div>
               </div>
             </div>
 
@@ -439,7 +437,7 @@ const UserDashboard: React.FC = () => {
               <div className="avatar">R</div>
               <div>
                 <strong>Ravi</strong>
-                <div className="muted">Vinyasa & Respiratory Biomechanics</div>
+                <div className="text-muted small">Vinyasa & Respiratory Biomechanics</div>
               </div>
             </div>
 
@@ -447,36 +445,36 @@ const UserDashboard: React.FC = () => {
               <div className="avatar">M</div>
               <div>
                 <strong>Maya</strong>
-                <div className="muted">Restorative & Somatic Mindfulness</div>
+                <div className="text-muted small">Restorative & Somatic Mindfulness</div>
               </div>
             </div>
           </div>
         </SectionCard>
 
-        <SectionCard title="Student Experience & Testimonials" icon={<MdStar size={26} style={{ color: "var(--yoga-primary, #FF2D6F)" }} />}>
+        <SectionCard title="Student Experience & Testimonials" icon={<MdStar size={24} style={{ color: "var(--brand-primary)" }} />}>
           <blockquote className="testimonial">
             "Yogashrini provided the analytical depth and spiritual foundation I needed. The alignment feedback transformed my personal practice." – <em>Priya R.</em>
           </blockquote>
-          <blockquote className="testimonial">
+          <blockquote className="testimonial mb-0">
             "The combination of traditional philosophy with computer vision precision sets this institution apart." – <em>Arjun D.</em>
           </blockquote>
         </SectionCard>
       </main>
 
-      {/* MODAL: SMART AI CLINICAL ASSESSMENT REPORT */}
+      {/* MODAL / MOBILE BOTTOM SHEET: SMART AI CLINICAL ASSESSMENT REPORT */}
       <AnimatePresence>
         {reportModalOpen && (
           <div className="ud-modal-backdrop">
             <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
+              initial={{ scale: 0.95, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 20 }}
               className="ud-modal-content"
             >
               <div className="ud-modal-header">
                 <div className="d-flex align-items-center gap-2">
-                  <MdAssessment size={22} style={{ color: "#7C3AED" }} />
-                  <h4 className="m-0 fw-bold">AI Biomechanical & Wellness Assessment</h4>
+                  <MdAssessment size={22} style={{ color: "var(--brand-accent)" }} />
+                  <h4 className="m-0 fs-6 fw-bold">AI Biomechanical & Wellness Assessment</h4>
                 </div>
                 <button
                   className="ud-modal-close-btn"
@@ -496,7 +494,7 @@ const UserDashboard: React.FC = () => {
                     </p>
 
                     <div className="row g-3 mb-4">
-                      <div className="col-md-4">
+                      <div className="col-12 col-md-4">
                         <label className="form-label small fw-bold">Student Name</label>
                         <input
                           type="text"
@@ -505,7 +503,7 @@ const UserDashboard: React.FC = () => {
                           onChange={(e) => setStudentName(e.target.value)}
                         />
                       </div>
-                      <div className="col-md-4">
+                      <div className="col-12 col-md-4">
                         <label className="form-label small fw-bold">Experience Level</label>
                         <select
                           className="form-select"
@@ -517,7 +515,7 @@ const UserDashboard: React.FC = () => {
                           <option value="Advanced">Advanced</option>
                         </select>
                       </div>
-                      <div className="col-md-4">
+                      <div className="col-12 col-md-4">
                         <label className="form-label small fw-bold">Primary Target Goal</label>
                         <select
                           className="form-select"
@@ -532,9 +530,9 @@ const UserDashboard: React.FC = () => {
                       </div>
                     </div>
 
-                    <div className="text-center py-3">
+                    <div className="text-center py-2">
                       <button
-                        className="btn btn-primary px-5 py-2 fw-bold d-inline-flex align-items-center gap-2"
+                        className="btn btn-primary px-4 py-2"
                         onClick={handleGenerateReport}
                         disabled={reportLoading}
                       >
@@ -544,34 +542,32 @@ const UserDashboard: React.FC = () => {
                     </div>
                   </div>
                 ) : (
-                  <div className="ud-report-paper">
-                    <div className="ud-report-paper-header">
+                  <div>
+                    <div className="d-flex align-items-center justify-content-between mb-3 pb-2 border-bottom">
                       <div>
-                        <h3 className="m-0 fw-bold">YOGASHRINI CLINICAL BIOMECHANICS REPORT</h3>
+                        <h4 className="m-0 fs-6 fw-bold">YOGASHRINI CLINICAL REPORT</h4>
                         <div className="small text-muted">
                           Report ID: {generatedReport.report_id || "YOG-8472"} · Date: {new Date().toLocaleDateString()}
                         </div>
                       </div>
                       <button
-                        className="btn btn-outline-secondary btn-sm d-inline-flex align-items-center gap-2"
+                        className="btn btn-secondary btn-sm"
                         onClick={() => window.print()}
                       >
-                        <MdPrint size={16} /> Print / Save PDF
+                        <MdPrint size={16} /> Print PDF
                       </button>
                     </div>
 
-                    <hr />
-
                     <div className="mb-3">
-                      <h5 className="fw-bold text-primary">1. Student Profile & Somatic Overview</h5>
-                      <p className="small text-muted">{generatedReport.student_overview || "Practitioner evaluated across standing balance and kinetic stability."}</p>
+                      <h6 className="fw-bold" style={{ color: "var(--brand-primary)" }}>1. Student Profile & Somatic Overview</h6>
+                      <p className="small text-secondary m-0">{generatedReport.student_overview || "Practitioner evaluated across standing balance and kinetic stability."}</p>
                     </div>
 
                     <div className="row g-3 mb-3">
-                      <div className="col-md-6">
-                        <div className="p-3 bg-light rounded border">
-                          <h6 className="fw-bold">Stability Index</h6>
-                          <div className="display-6 fw-bold text-success">
+                      <div className="col-12 col-sm-6">
+                        <div className="p-3 bg-surface rounded border">
+                          <div className="fw-bold small text-muted">Stability Index</div>
+                          <div className="fs-3 fw-bold text-success">
                             {generatedReport.stability_index?.score ?? 92}%
                           </div>
                           <div className="small text-muted">
@@ -579,10 +575,10 @@ const UserDashboard: React.FC = () => {
                           </div>
                         </div>
                       </div>
-                      <div className="col-md-6">
-                        <div className="p-3 bg-light rounded border">
-                          <h6 className="fw-bold">Kinematic Alignment Status</h6>
-                          <div className="small text-muted">
+                      <div className="col-12 col-sm-6">
+                        <div className="p-3 bg-surface rounded border">
+                          <div className="fw-bold small text-muted">Kinematic Alignment</div>
+                          <div className="small text-secondary mt-1">
                             Standing Knee: <strong>178 deg (Normal)</strong><br />
                             Pelvic Abduction: <strong>48 deg (Optimal)</strong><br />
                             Spine Deviation: <strong>Under 5 deg</strong>
@@ -592,46 +588,20 @@ const UserDashboard: React.FC = () => {
                     </div>
 
                     <div className="mb-3">
-                      <h5 className="fw-bold text-primary">2. Clinical Musculoskeletal Assessment</h5>
-                      <p className="small">{generatedReport.clinical_assessment || "No structural joint deviations detected. Bilateral equilibrium within optimal parameters."}</p>
+                      <h6 className="fw-bold" style={{ color: "var(--brand-primary)" }}>2. Musculoskeletal Assessment</h6>
+                      <p className="small text-secondary m-0">{generatedReport.clinical_assessment || "No structural joint deviations detected."}</p>
                     </div>
 
                     <div className="mb-3">
-                      <h5 className="fw-bold text-primary">3. Kinetic Chain Diagnostics</h5>
-                      <p className="small">{generatedReport.kinetic_chain_analysis || "Ground reaction force distributed through the tripod of the foot. Pelvic stability maintained."}</p>
-                    </div>
-
-                    <div className="mb-3">
-                      <h5 className="fw-bold text-danger">4. Contraindications & Protective Precautions</h5>
-                      <div className="p-2 bg-light rounded border-start border-danger border-4 small text-danger">
-                        {generatedReport.contraindications_and_precautions || "Maintain focus on knee safety: avoid placing foot on the side of the knee joint."}
+                      <h6 className="fw-bold text-danger">3. Precautions & Contraindications</h6>
+                      <div className="p-2 rounded border-start border-danger border-4 small text-danger" style={{ background: "rgba(239, 68, 68, 0.08)" }}>
+                        {generatedReport.contraindications_and_precautions || "Maintain focus on knee safety: avoid placing foot on the knee joint."}
                       </div>
                     </div>
 
-                    <div className="mb-3">
-                      <h5 className="fw-bold text-primary">5. 30-Day Prescriptive Practice Protocol</h5>
-                      <div className="row g-2 small">
-                        {typeof generatedReport.thirty_day_prescriptive_plan === "object" && generatedReport.thirty_day_prescriptive_plan !== null ? (
-                          Object.entries(generatedReport.thirty_day_prescriptive_plan).map(([week, text], idx) => (
-                            <div className="col-12" key={idx}>
-                              <span className="fw-bold text-capitalize">{week.replace("_", " ")}: </span>
-                              <span>{text as string}</span>
-                            </div>
-                          ))
-                        ) : (
-                          <p>{generatedReport.thirty_day_prescriptive_plan || "Progressive balance training with 30-second sustained isometric holds."}</p>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="p-3 bg-light rounded border mt-4">
-                      <h6 className="fw-bold">Professional Recommendation</h6>
-                      <p className="small m-0 fst-italic">{generatedReport.professional_recommendation || "Incorporate bilateral hip opening and diaphragmatic breath synchronization."}</p>
-                    </div>
-
-                    <div className="text-end mt-4">
+                    <div className="d-flex justify-content-end gap-2 mt-4">
                       <button
-                        className="btn btn-secondary btn-sm me-2"
+                        className="btn btn-secondary btn-sm"
                         onClick={() => setGeneratedReport(null)}
                       >
                         Generate Another
@@ -650,9 +620,7 @@ const UserDashboard: React.FC = () => {
           </div>
         )}
       </AnimatePresence>
-
-      <Footer />
-    </>
+    </div>
   );
 };
 

@@ -4,8 +4,6 @@
 
 import React, { useEffect, useRef, useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import Navbar from "../inc/Navbar";
-import Footer from "../inc/Footer";
 import "./LiveTrainer.css";
 import { LimbStatus, Landmark } from "../types";
 
@@ -22,7 +20,9 @@ import {
   MdError,
   MdLightbulbOutline,
   MdTimer,
-  MdPhotoSizeSelectActual
+  MdPhotoSizeSelectActual,
+  MdFullscreen,
+  MdFullscreenExit
 } from "react-icons/md";
 
 const BACKEND_URL = "http://localhost:5000";
@@ -72,6 +72,7 @@ const LiveTrainer: React.FC = () => {
   const [isAudioMuted, setIsAudioMuted] = useState<boolean>(false);
   const [showReference, setShowReference] = useState<boolean>(true);
   const [referenceImgUrl, setReferenceImgUrl] = useState<string | null>(null);
+  const [focusMode, setFocusMode] = useState<boolean>(false);
 
   // AI & Detection States
   const [personDetected, setPersonDetected] = useState<boolean>(false);
@@ -550,15 +551,12 @@ const LiveTrainer: React.FC = () => {
   }, []);
 
   return (
-    <>
-      <Navbar />
-
-      <motion.main
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.3 }}
-        className="lt-container container"
-      >
+    <motion.main
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.3 }}
+      className="lt-container yoga-container"
+    >
         {/* Header */}
         <header className="lt-header">
           <div className="lt-title-area">
@@ -625,12 +623,20 @@ const LiveTrainer: React.FC = () => {
               >
                 <MdPhotoSizeSelectActual size={18} /> Reference
               </button>
+
+              <button
+                className={`lt-btn secondary ${focusMode ? "active" : ""}`}
+                onClick={() => setFocusMode(!focusMode)}
+                title="Toggle Focus View"
+              >
+                {focusMode ? <MdFullscreenExit size={18} /> : <MdFullscreen size={18} />} {focusMode ? "Dual View" : "Focus"}
+              </button>
             </div>
           </div>
         </header>
 
         {/* Main Grid */}
-        <div className="lt-grid">
+        <div className={`lt-grid ${focusMode ? "focus-mode" : ""}`}>
           {/* Left: Video & Skeleton Stage */}
           <div className="lt-stage-card">
             <div className="lt-stage-wrapper">
@@ -732,7 +738,8 @@ const LiveTrainer: React.FC = () => {
           </div>
 
           {/* Right: Side Panel with Alignment Breakdown & Corrections */}
-          <div className="lt-side-panel">
+          {!focusMode && (
+            <div className="lt-side-panel">
             {/* Alignment Card */}
             <div className="lt-card">
               <div className="lt-card-title">
@@ -852,11 +859,9 @@ const LiveTrainer: React.FC = () => {
               </div>
             )}
           </div>
-        </div>
-      </motion.main>
-
-      <Footer />
-    </>
+        )}
+      </div>
+    </motion.main>
   );
 };
 

@@ -1,8 +1,7 @@
-import React, { useEffect, useState, useRef } from "react";
+// src/pages/Training.tsx
+import React, { useEffect, useState } from "react";
 import { NavLink } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import Navbar from "../inc/Navbar";
-import Footer from "../inc/Footer";
 import "./Training.css";
 import { GiLotus } from "react-icons/gi";
 import {
@@ -11,23 +10,12 @@ import {
   MdCheckCircle,
   MdClose,
   MdFilterList,
-  MdInfo,
   MdOutlineShoppingCart,
   MdErrorOutline,
 } from "react-icons/md";
-import { FaWhatsapp } from "react-icons/fa";
+import { Product } from "../types";
 
 const API = "http://localhost:2000";
-
-interface Product {
-  _id: string;
-  pname: string;
-  pprice: number;
-  pcategory?: string;
-  pdetails?: string;
-  pimage?: string;
-  pstock?: number;
-}
 
 const PLACEHOLDER_SVG =
   "data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='260' viewBox='0 0 400 260'%3E%3Crect width='100%25' height='100%25' fill='%23f3f4f6'/%3E%3Ctext x='50%25' y='50%25' fill='%239ca3af' font-family='sans-serif' font-size='18' text-anchor='middle' dy='.3em'%3EYoga Product%3C/text%3E%3C/svg%3E";
@@ -36,7 +24,6 @@ export const Training: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeProduct, setActiveProduct] = useState<Product | null>(null);
   const [orderProduct, setOrderProduct] = useState<Product | null>(null);
   const [search, setSearch] = useState<string>("");
   const [categoryFilter, setCategoryFilter] = useState<string>("All");
@@ -61,7 +48,7 @@ export const Training: React.FC = () => {
       const data = await resp.json();
       setProducts(Array.isArray(data) ? data : []);
     } catch {
-      setError("Unable to load products. Please check if the server is running.");
+      setError("Unable to load store products. Please check if the server is running.");
       setProducts([]);
     } finally {
       setLoading(false);
@@ -89,16 +76,10 @@ export const Training: React.FC = () => {
     setOrderError(null);
   };
 
-  const handleCloseOrder = () => {
-    setOrderProduct(null);
-    setOrderSuccess(null);
-    setOrderError(null);
-  };
-
   const handleSubmitOrder = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!customerName.trim() || !customerPhone.trim() || !orderProduct) {
-      setOrderError("Please provide your name and phone number.");
+      setOrderError("Please enter your name and phone number.");
       return;
     }
 
@@ -106,106 +87,92 @@ export const Training: React.FC = () => {
     setOrderError(null);
 
     try {
-      const payload = {
-        productId: orderProduct._id,
-        productName: orderProduct.pname,
-        productPrice: orderProduct.pprice,
-        quantity: orderQty,
-        customerName,
-        customerPhone,
-        customerEmail,
-        address,
-        notes: orderNotes,
-      };
-
       const resp = await fetch(`${API}/product/order`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({
+          productId: orderProduct._id,
+          productName: orderProduct.pname,
+          productPrice: orderProduct.pprice,
+          quantity: orderQty,
+          customerName,
+          customerPhone,
+          customerEmail,
+          address,
+          notes: orderNotes,
+        }),
       });
 
       const data = await resp.json();
-      if (resp.ok) {
-        setOrderSuccess(data.msg || "Order placed successfully!");
-        getProducts();
-      } else {
-        setOrderError(data.error || "Failed to place order.");
-      }
-    } catch {
-      setOrderError("Network error. Please try again or order via WhatsApp.");
+      if (!resp.ok) throw new Error(data.error || "Order placement failed");
+
+      setOrderSuccess(data.msg || "Order placed successfully! Our team will contact you shortly.");
+      setTimeout(() => {
+        setOrderProduct(null);
+        setOrderSuccess(null);
+      }, 2500);
+    } catch (err: any) {
+      setOrderError(err.message || "Failed to submit inquiry. Please try again.");
     } finally {
       setOrderSubmitting(false);
     }
   };
 
-  const whatsappMessage = orderProduct
-    ? encodeURIComponent(
-        `Hello Yogashrini! I am interested in ordering: ${orderProduct.pname} (INR ${orderProduct.pprice}). My name is ${
-          customerName || "[Name]"
-        }. Please let me know the ordering process.`
-      )
-    : "";
-
   return (
-    <>
-      <Navbar />
-
-      <motion.header
-        className="ud-hero mb-4"
-        initial={{ opacity: 0, y: -20 }}
+    <div className="training-page">
+      {/* Hero Header */}
+      <motion.div
+        className="ud-hero-section mb-4"
+        initial={{ opacity: 0, y: -15 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
+        transition={{ duration: 0.4 }}
       >
-        <div className="ud-hero-inner container">
-          <div className="ud-hero-left">
-            <GiLotus size={72} className="posture-hero-icon" style={{ color: "var(--yoga-primary, #FF2D6F)" }} />
-            <div className="ud-hero-title-wrap">
-              <h1 className="ud-title">Yoga Equipment & Training Offerings</h1>
-              <p className="ud-subtitle">
-                Explore handcrafted organic mats, supportive props, workshop passes, and wellness apparel designed to
-                enrich your practice.
+        <div className="yoga-container">
+          <div className="d-flex align-items-center gap-3">
+            <div className="ud-ai-badge-icon">
+              <MdShoppingBag size={28} />
+            </div>
+            <div>
+              <h1 className="m-0 fs-3 fw-bold">Yogashrini Wellness Store & Materials</h1>
+              <p className="text-secondary small m-0 mt-1">
+                Authentic props, cork mats, meditation cushions, and comprehensive training materials.
               </p>
-              <div className="posture-hero-badges">
-                <span className="posture-badge">Eco-friendly Mats</span>
-                <span className="posture-badge">Certified Studio Props</span>
-                <span className="posture-badge">Express Dispatch</span>
-              </div>
             </div>
           </div>
         </div>
-      </motion.header>
+      </motion.div>
 
-      <main className="container pb-5">
-        {/* Controls Bar */}
-        <div className="card border-0 rounded-4 shadow-sm p-3 mb-4">
+      <main className="yoga-container">
+        {/* Search & Category Filter */}
+        <div className="card p-3 mb-4">
           <div className="row g-3 align-items-center">
-            <div className="col-12 col-md-5">
+            <div className="col-12 col-md-6">
               <div className="input-group">
-                <span className="input-group-text bg-light border-0">
-                  <MdSearch className="text-muted" />
+                <span className="input-group-text" style={{ background: "var(--bg-secondary)", borderColor: "var(--border-prominent)" }}>
+                  <MdSearch style={{ color: "var(--text-muted)" }} size={18} />
                 </span>
                 <input
                   type="text"
-                  className="form-control bg-light border-0"
-                  placeholder="Search products, gear, passes..."
+                  className="form-control"
+                  placeholder="Search products or props..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                 />
               </div>
             </div>
 
-            <div className="col-12 col-md-7">
-              <div className="d-flex align-items-center justify-content-md-end gap-2 overflow-auto">
-                <span className="text-muted small fw-bold d-flex align-items-center gap-1 text-nowrap">
-                  <MdFilterList /> Category:
+            <div className="col-12 col-md-6">
+              <div className="d-flex align-items-center justify-content-md-end gap-2 overflow-auto pb-1">
+                <span className="small fw-bold text-muted d-flex align-items-center gap-1 text-nowrap">
+                  <MdFilterList /> Filter:
                 </span>
                 {categories.map((cat) => (
                   <button
                     key={cat}
-                    className={`btn btn-sm rounded-pill px-3 text-nowrap ${
-                      categoryFilter === cat ? "btn-primary shadow-sm" : "btn-light"
-                    }`}
                     onClick={() => setCategoryFilter(cat)}
+                    className={`btn btn-sm text-nowrap ${
+                      categoryFilter === cat ? "btn-primary" : "btn-secondary"
+                    }`}
                   >
                     {cat}
                   </button>
@@ -215,21 +182,30 @@ export const Training: React.FC = () => {
           </div>
         </div>
 
-        {/* Product Grid */}
+        {/* Product Cards Grid */}
         {loading ? (
           <div className="text-center py-5">
             <div className="spinner-border text-primary" role="status" />
-            <p className="text-muted mt-2 small">Loading gear catalog...</p>
+            <p className="text-muted mt-2 small">Loading products...</p>
           </div>
         ) : error ? (
-          <div className="alert alert-danger rounded-4 p-4 text-center">{error}</div>
+          <div className="card text-center p-5">
+            <MdErrorOutline size={40} className="text-danger mx-auto mb-2" />
+            <h5 className="fw-bold mb-1">Store Unavailable</h5>
+            <p className="text-muted small mb-3">{error}</p>
+            <div>
+              <button className="btn btn-secondary btn-sm" onClick={getProducts}>
+                Retry
+              </button>
+            </div>
+          </div>
         ) : filteredProducts.length === 0 ? (
-          <div className="card border-0 rounded-4 shadow-sm p-5 text-center bg-white">
-            <h5 className="fw-bold mb-2">No products match your criteria</h5>
-            <p className="text-muted small mb-4">Try clearing your search query or choosing another category.</p>
+          <div className="card text-center p-5">
+            <h5 className="fw-bold mb-1">No products found</h5>
+            <p className="text-muted small mb-3">Try modifying your search query or category.</p>
             <div>
               <button
-                className="btn btn-primary rounded-pill px-4"
+                className="btn btn-secondary btn-sm"
                 onClick={() => {
                   setSearch("");
                   setCategoryFilter("All");
@@ -240,299 +216,179 @@ export const Training: React.FC = () => {
             </div>
           </div>
         ) : (
-          <div className="row g-4">
-            <AnimatePresence>
-              {filteredProducts.map((p, idx) => (
-                <motion.div
-                  key={p._id}
-                  className="col-12 col-sm-6 col-lg-4"
-                  initial={{ opacity: 0, y: 15 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
-                  transition={{ duration: 0.3, delay: idx * 0.04 }}
-                >
-                  <div className="card h-100 border-0 shadow-sm rounded-4 overflow-hidden d-flex flex-column hover-lift">
-                    <div
-                      className="position-relative bg-light"
-                      style={{ height: "200px", cursor: "pointer" }}
-                      onClick={() => setActiveProduct(p)}
-                    >
-                      <img
-                        src={p.pimage ? `${API}/uploads/${p.pimage}` : PLACEHOLDER_SVG}
-                        alt={p.pname}
-                        className="w-100 h-100 object-fit-cover"
-                        onError={(e) => {
-                          e.currentTarget.src = PLACEHOLDER_SVG;
-                        }}
-                      />
-                      {p.pcategory && (
-                        <span className="position-absolute top-0 start-0 m-3 badge bg-dark bg-opacity-75 rounded-pill px-3 py-1 small">
-                          {p.pcategory}
-                        </span>
-                      )}
-                    </div>
-
-                    <div className="card-body p-4 d-flex flex-column flex-grow-1">
-                      <h5
-                        className="fw-bold text-dark mb-1"
-                        style={{ cursor: "pointer" }}
-                        onClick={() => setActiveProduct(p)}
-                      >
-                        {p.pname}
-                      </h5>
-                      <p
-                        className="text-muted small mb-3 flex-grow-1"
-                        style={{
-                          lineClamp: 2,
-                          display: "-webkit-box",
-                          WebkitBoxOrient: "vertical",
-                          overflow: "hidden",
-                        }}
-                      >
-                        {p.pdetails || "Authentic yoga merchandise and classical training supplies."}
-                      </p>
-
-                      <div className="d-flex align-items-center justify-content-between pt-3 border-top">
-                        <div>
-                          <span className="text-muted small d-block">Price</span>
-                          <span className="fw-bold fs-5 text-dark">INR {p.pprice}</span>
-                        </div>
-                        <div className="d-flex gap-2">
-                          <button
-                            className="btn btn-sm btn-outline-secondary rounded-pill px-3"
-                            onClick={() => setActiveProduct(p)}
-                            title="Product Details"
-                          >
-                            <MdInfo /> Details
-                          </button>
-                          <button
-                            className="btn btn-sm btn-primary rounded-pill px-3 d-flex align-items-center gap-1"
-                            onClick={() => handleOpenOrder(p)}
-                          >
-                            <MdShoppingBag /> Order
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </motion.div>
-              ))}
-            </AnimatePresence>
-          </div>
-        )}
-
-        {/* Product Details Modal */}
-        <AnimatePresence>
-          {activeProduct && (
-            <motion.div
-              className="position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center bg-dark bg-opacity-50"
-              style={{ zIndex: 1050 }}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-            >
+          <div className="product-store-grid">
+            {filteredProducts.map((p, idx) => (
               <motion.div
-                className="bg-white rounded-4 shadow-lg p-4 m-3"
-                style={{ maxWidth: 540, width: "100%" }}
-                initial={{ scale: 0.9, y: 20 }}
-                animate={{ scale: 1, y: 0 }}
-                exit={{ scale: 0.9, y: 20 }}
+                key={p._id || idx}
+                className="product-store-card"
+                initial={{ opacity: 0, y: 15 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.25, delay: idx * 0.03 }}
               >
-                <div className="d-flex justify-content-between align-items-center mb-3">
-                  <h5 className="fw-bold mb-0 text-dark">{activeProduct.pname}</h5>
-                  <button
-                    className="btn btn-sm btn-light rounded-circle"
-                    onClick={() => setActiveProduct(null)}
-                  >
-                    <MdClose />
-                  </button>
-                </div>
-
-                <div className="rounded-3 overflow-hidden mb-3 bg-light" style={{ height: "240px" }}>
+                <div className="product-store-card-img-wrap">
                   <img
-                    src={activeProduct.pimage ? `${API}/uploads/${activeProduct.pimage}` : PLACEHOLDER_SVG}
-                    alt={activeProduct.pname}
-                    className="w-100 h-100 object-fit-cover"
+                    src={p.pimage ? `${API}/product_img/${p.pimage}` : PLACEHOLDER_SVG}
+                    alt={p.pname}
+                    className="product-store-card-img"
                     onError={(e) => {
-                      e.currentTarget.src = PLACEHOLDER_SVG;
+                      (e.target as HTMLImageElement).src = PLACEHOLDER_SVG;
                     }}
                   />
-                </div>
-
-                <div className="d-flex justify-content-between align-items-center mb-3">
-                  <span className="fs-4 fw-bold text-dark">INR {activeProduct.pprice}</span>
-                  {activeProduct.pcategory && (
-                    <span className="badge bg-primary bg-opacity-10 text-primary rounded-pill px-3 py-1">
-                      {activeProduct.pcategory}
+                  {p.pcategory && (
+                    <span className="position-absolute top-0 start-0 m-2 badge-pill badge-primary">
+                      {p.pcategory}
                     </span>
                   )}
                 </div>
 
-                <p className="text-muted small mb-4">{activeProduct.pdetails}</p>
+                <div className="product-store-body">
+                  <h4 className="product-store-title">{p.pname}</h4>
+                  {p.pdetails && (
+                    <p className="text-secondary small mb-3" style={{ display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
+                      {p.pdetails}
+                    </p>
+                  )}
 
-                <div className="d-flex gap-2 justify-content-end">
-                  <button
-                    className="btn btn-light rounded-pill px-4"
-                    onClick={() => setActiveProduct(null)}
-                  >
-                    Close
-                  </button>
-                  <button
-                    className="btn btn-primary rounded-pill px-4 d-flex align-items-center gap-1"
-                    onClick={() => {
-                      const p = activeProduct;
-                      setActiveProduct(null);
-                      handleOpenOrder(p);
-                    }}
-                  >
-                    <MdShoppingBag /> Order Now
-                  </button>
-                </div>
-              </motion.div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* Order Modal */}
-        <AnimatePresence>
-          {orderProduct && (
-            <motion.div
-              className="position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center bg-dark bg-opacity-50"
-              style={{ zIndex: 1060 }}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-            >
-              <motion.div
-                className="bg-white rounded-4 shadow-lg p-4 m-3"
-                style={{ maxWidth: 500, width: "100%" }}
-                initial={{ scale: 0.9, y: 20 }}
-                animate={{ scale: 1, y: 0 }}
-                exit={{ scale: 0.9, y: 20 }}
-              >
-                <div className="d-flex justify-content-between align-items-center mb-3">
-                  <h5 className="fw-bold mb-0 text-dark d-flex align-items-center gap-2">
-                    <MdOutlineShoppingCart className="text-primary" /> Complete Purchase
-                  </h5>
-                  <button className="btn btn-sm btn-light rounded-circle" onClick={handleCloseOrder}>
-                    <MdClose />
-                  </button>
-                </div>
-
-                {orderSuccess ? (
-                  <div className="text-center py-4">
-                    <MdCheckCircle className="text-success mb-2" size={48} />
-                    <h5 className="fw-bold text-success">Order Received</h5>
-                    <p className="text-muted small">{orderSuccess}</p>
-                    <button className="btn btn-primary rounded-pill px-4 mt-3" onClick={handleCloseOrder}>
-                      Done
+                  <div className="product-store-price">
+                    <span>₹{p.pprice}</span>
+                    <button
+                      className="btn btn-primary btn-sm"
+                      onClick={() => handleOpenOrder(p)}
+                    >
+                      <MdOutlineShoppingCart size={15} /> Order Now
                     </button>
                   </div>
-                ) : (
-                  <form onSubmit={handleSubmitOrder}>
-                    <div className="p-3 bg-light rounded-3 mb-3 small d-flex justify-content-between align-items-center">
-                      <div>
-                        <div className="fw-bold text-dark">{orderProduct.pname}</div>
-                        <div className="text-muted">INR {orderProduct.pprice} per unit</div>
-                      </div>
-                      <div className="fw-bold fs-5 text-primary">INR {orderProduct.pprice * orderQty}</div>
-                    </div>
-
-                    {orderError && (
-                      <div className="alert alert-danger py-2 px-3 rounded-3 small mb-3 d-flex align-items-center gap-2">
-                        <MdErrorOutline /> {orderError}
-                      </div>
-                    )}
-
-                    <div className="row g-2 mb-3">
-                      <div className="col-8">
-                        <label className="form-label small fw-bold">Full Name</label>
-                        <input
-                          type="text"
-                          required
-                          className="form-control"
-                          placeholder="Your name"
-                          value={customerName}
-                          onChange={(e) => setCustomerName(e.target.value)}
-                        />
-                      </div>
-                      <div className="col-4">
-                        <label className="form-label small fw-bold">Quantity</label>
-                        <input
-                          type="number"
-                          min="1"
-                          max="20"
-                          className="form-control"
-                          value={orderQty}
-                          onChange={(e) => setOrderQty(Math.max(1, parseInt(e.target.value) || 1))}
-                        />
-                      </div>
-                    </div>
-
-                    <div className="row g-2 mb-3">
-                      <div className="col-6">
-                        <label className="form-label small fw-bold">Phone Number</label>
-                        <input
-                          type="tel"
-                          required
-                          className="form-control"
-                          placeholder="+91..."
-                          value={customerPhone}
-                          onChange={(e) => setCustomerPhone(e.target.value)}
-                        />
-                      </div>
-                      <div className="col-6">
-                        <label className="form-label small fw-bold">Email Address</label>
-                        <input
-                          type="email"
-                          className="form-control"
-                          placeholder="Optional"
-                          value={customerEmail}
-                          onChange={(e) => setCustomerEmail(e.target.value)}
-                        />
-                      </div>
-                    </div>
-
-                    <div className="mb-3">
-                      <label className="form-label small fw-bold">Delivery Address</label>
-                      <textarea
-                        className="form-control"
-                        rows={2}
-                        placeholder="Street, City, Pin Code"
-                        value={address}
-                        onChange={(e) => setAddress(e.target.value)}
-                      />
-                    </div>
-
-                    <div className="d-flex flex-column gap-2 pt-2">
-                      <button
-                        type="submit"
-                        disabled={orderSubmitting}
-                        className="btn btn-primary rounded-pill py-2 fw-bold"
-                      >
-                        {orderSubmitting ? "Placing Order..." : "Confirm & Place Order"}
-                      </button>
-
-                      {whatsappMessage && (
-                        <a
-                          href={`https://wa.me/919830000000?text=${whatsappMessage}`}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="btn btn-outline-success rounded-pill py-2 small fw-bold d-flex align-items-center justify-content-center gap-2"
-                        >
-                          <FaWhatsapp size={16} /> Order Directly via WhatsApp
-                        </a>
-                      )}
-                    </div>
-                  </form>
-                )}
+                </div>
               </motion.div>
-            </motion.div>
+            ))}
+          </div>
+        )}
+
+        {/* Order Inquiry Modal / Drawer */}
+        <AnimatePresence>
+          {orderProduct && (
+            <div className="ud-modal-backdrop">
+              <motion.div
+                className="ud-modal-content"
+                style={{ maxWidth: 520 }}
+                initial={{ scale: 0.95, y: 20, opacity: 0 }}
+                animate={{ scale: 1, y: 0, opacity: 1 }}
+                exit={{ scale: 0.95, y: 20, opacity: 0 }}
+              >
+                <div className="ud-modal-header">
+                  <h5 className="fw-bold mb-0 fs-6 d-flex align-items-center gap-2">
+                    <MdShoppingBag style={{ color: "var(--brand-primary)" }} /> Place Order Inquiry
+                  </h5>
+                  <button
+                    className="ud-modal-close-btn"
+                    onClick={() => setOrderProduct(null)}
+                    aria-label="Close"
+                  >
+                    <MdClose size={20} />
+                  </button>
+                </div>
+
+                <div className="ud-modal-body">
+                  {orderSuccess ? (
+                    <div className="text-center py-4">
+                      <MdCheckCircle className="text-success mb-2" size={48} />
+                      <h5 className="fw-bold text-success mb-1">Inquiry Placed</h5>
+                      <p className="text-muted small m-0">{orderSuccess}</p>
+                    </div>
+                  ) : (
+                    <form onSubmit={handleSubmitOrder}>
+                      <div className="p-3 rounded-3 mb-3 small" style={{ backgroundColor: "var(--bg-secondary)", border: "1px solid var(--border-subtle)" }}>
+                        <div className="fw-bold">{orderProduct.pname}</div>
+                        <div className="fs-5 fw-bold mt-1" style={{ color: "var(--brand-primary)" }}>
+                          ₹{orderProduct.pprice} {orderQty > 1 ? `× ${orderQty} = ₹${Number(orderProduct.pprice || 0) * orderQty}` : ""}
+                        </div>
+                      </div>
+
+                      {orderError && (
+                        <div className="alert alert-danger py-2 small mb-3">{orderError}</div>
+                      )}
+
+                      <div className="row g-2 mb-3">
+                        <div className="col-8">
+                          <label className="form-label small fw-bold">Full Name *</label>
+                          <input
+                            type="text"
+                            required
+                            className="form-control form-control-sm"
+                            value={customerName}
+                            onChange={(e) => setCustomerName(e.target.value)}
+                          />
+                        </div>
+                        <div className="col-4">
+                          <label className="form-label small fw-bold">Quantity</label>
+                          <input
+                            type="number"
+                            min="1"
+                            max="50"
+                            className="form-control form-control-sm"
+                            value={orderQty}
+                            onChange={(e) => setOrderQty(Math.max(1, parseInt(e.target.value) || 1))}
+                          />
+                        </div>
+                      </div>
+
+                      <div className="row g-2 mb-3">
+                        <div className="col-6">
+                          <label className="form-label small fw-bold">Phone Number *</label>
+                          <input
+                            type="tel"
+                            required
+                            className="form-control form-control-sm"
+                            value={customerPhone}
+                            onChange={(e) => setCustomerPhone(e.target.value)}
+                          />
+                        </div>
+                        <div className="col-6">
+                          <label className="form-label small fw-bold">Email Address</label>
+                          <input
+                            type="email"
+                            className="form-control form-control-sm"
+                            value={customerEmail}
+                            onChange={(e) => setCustomerEmail(e.target.value)}
+                          />
+                        </div>
+                      </div>
+
+                      <div className="mb-3">
+                        <label className="form-label small fw-bold">Delivery Address</label>
+                        <textarea
+                          rows={2}
+                          className="form-control form-control-sm"
+                          value={address}
+                          onChange={(e) => setAddress(e.target.value)}
+                        />
+                      </div>
+
+                      <div className="d-flex gap-2 justify-content-end pt-2">
+                        <button
+                          type="button"
+                          className="btn btn-secondary btn-sm"
+                          onClick={() => setOrderProduct(null)}
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="submit"
+                          className="btn btn-primary btn-sm"
+                          disabled={orderSubmitting}
+                        >
+                          {orderSubmitting ? "Submitting..." : "Confirm Inquiry"}
+                        </button>
+                      </div>
+                    </form>
+                  )}
+                </div>
+              </motion.div>
+            </div>
           )}
         </AnimatePresence>
       </main>
-      <Footer />
-    </>
+    </div>
   );
 };
 

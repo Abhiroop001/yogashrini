@@ -1,13 +1,166 @@
-body {
-  margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+/* Frontend/src/index.css
+   Unified Design Tokens & Global Responsive Base Architecture
+   Strict Zero Emojis - WCAG AA Contrast Compliant
+*/
+
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap');
+
+:root {
+  /* Brand Identity Tokens */
+  --brand-primary: #FF2D6F;
+  --brand-primary-hover: #C2185B;
+  --brand-primary-subtle: rgba(255, 45, 111, 0.12);
+  --brand-accent: #7C3AED;
+  --brand-accent-hover: #6D28D9;
+  --brand-accent-glow: rgba(124, 58, 237, 0.22);
+  --brand-emerald: #10B981;
+  --brand-amber: #F59E0B;
+  --brand-cyan: #06B6D4;
+
+  /* Typography */
+  --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-display: 'Space Grotesk', var(--font-sans);
+
+  /* Radius & Transitions */
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --radius-full: 9999px;
+  --transition-fast: 0.18s ease;
+  --transition-smooth: 0.28s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
-    monospace;
+/* Light Mode Tokens (Default) */
+:root,
+body[data-theme="light"] {
+  --bg-primary: #FAF9F6;
+  --bg-secondary: #F3F1EC;
+  --bg-surface: #FFFFFF;
+  --bg-surface-elevated: #FFFFFF;
+  --bg-glass: rgba(255, 255, 255, 0.82);
+
+  --text-primary: #121826;
+  --text-secondary: #4B5565;
+  --text-muted: #6C737F;
+  --text-inverse: #FFFFFF;
+
+  --border-subtle: #E3E2DE;
+  --border-prominent: #CDCAC2;
+
+  --card-shadow: 0 4px 20px rgba(18, 24, 38, 0.05), 0 1px 3px rgba(18, 24, 38, 0.03);
+  --card-shadow-hover: 0 12px 36px rgba(18, 24, 38, 0.09), 0 2px 6px rgba(18, 24, 38, 0.04);
+  --card-backdrop-blur: blur(16px);
+
+  /* Semantic Maps */
+  --accent: var(--brand-primary);
+  --accent-2: var(--brand-accent);
+  --link-color: var(--brand-accent);
+  --table-head-bg: #F0ECE1;
+  --table-text: #1E293B;
+  --heading-color: #0F172A;
+}
+
+/* Dark Mode Tokens */
+body[data-theme="dark"] {
+  --bg-primary: #0B0E14;
+  --bg-secondary: #121721;
+  --bg-surface: #181F2C;
+  --bg-surface-elevated: #20293A;
+  --bg-glass: rgba(24, 31, 44, 0.82);
+
+  --text-primary: #F8FAFC;
+  --text-secondary: #CBD5E1;
+  --text-muted: #94A3B8;
+  --text-inverse: #0F172A;
+
+  --border-subtle: rgba(255, 255, 255, 0.08);
+  --border-prominent: rgba(255, 255, 255, 0.16);
+
+  --card-shadow: 0 4px 24px rgba(0, 0, 0, 0.45), 0 1px 3px rgba(0, 0, 0, 0.3);
+  --card-shadow-hover: 0 16px 44px rgba(0, 0, 0, 0.65), 0 0 20px rgba(255, 45, 111, 0.15);
+  --card-backdrop-blur: blur(18px);
+
+  /* Semantic Maps */
+  --accent: #FF5A8E;
+  --accent-2: #A78BFA;
+  --link-color: #93C5FD;
+  --table-head-bg: #1A2333;
+  --table-text: #F1F5F9;
+  --heading-color: #F8FAFC;
+}
+
+/* Base Reset & Typography */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  min-height: 100vh;
+  overflow-x: hidden;
+  font-family: var(--font-sans);
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-display);
+  color: var(--heading-color);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin-top: 0;
+}
+
+a {
+  color: var(--link-color);
+  text-decoration: none;
+  transition: color var(--transition-fast);
+}
+
+a:hover {
+  color: var(--brand-primary);
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-secondary);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border-prominent);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--brand-primary);
+}
+
+/* Glassmorphic Container Helpers */
+.glass-panel {
+  background: var(--bg-glass);
+  backdrop-filter: var(--card-backdrop-blur);
+  -webkit-backdrop-filter: var(--card-backdrop-blur);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--card-shadow);
+}
+
+.glass-panel-elevated {
+  background: var(--bg-surface-elevated);
+  backdrop-filter: var(--card-backdrop-blur);
+  -webkit-backdrop-filter: var(--card-backdrop-blur);
+  border: 1px solid var(--border-prominent);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--card-shadow-hover);
 }

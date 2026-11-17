@@ -1,23 +1,56 @@
+// src/inc/Navbar.tsx
+// Fully Responsive Sticky Glassmorphic Navbar with Framer Motion Mobile Drawer
+// Strictly Zero Emojis - react-icons Exclusive
+
 import React, { useEffect, useState } from "react";
-import { NavLink, useNavigate } from "react-router-dom";
-import { motion } from "framer-motion";
+import { NavLink, useNavigate, useLocation } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
 import YogashriniLogo from "../pages/Yogashrini.jpg";
 import "./Navbar.css";
-import { MdDarkMode, MdLightMode, MdLogout, MdPerson } from "react-icons/md";
+import {
+  MdDarkMode,
+  MdLightMode,
+  MdLogout,
+  MdPerson,
+  MdMenu,
+  MdClose,
+  MdPlayCircle,
+  MdSchool,
+  MdSelfImprovement,
+  MdFitnessCenter
+} from "react-icons/md";
 import { useAuth } from "../AuthContext";
+
+const navItems = [
+  { path: "/", label: "Home" },
+  { path: "/about", label: "About Us" },
+  { path: "/classes", label: "Classes" },
+  { path: "/courses", label: "Courses" },
+  { path: "/retreat", label: "Retreat" },
+  { path: "/training", label: "Training" },
+  { path: "/contact", label: "Contact Us" },
+  { path: "/posture", label: "Posture AI" },
+  { path: "/live-trainer", label: "Live Trainer", isLive: true },
+  { path: "/types", label: "Asanas" },
+];
 
 const Navbar: React.FC = () => {
   const [theme, setTheme] = useState<string>("light");
+  const [mobileMenuOpen, setMobileMenuOpen] = useState<boolean>(false);
   const { isAuthenticated, user, logout } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
-    const savedTheme = localStorage.getItem("theme");
-    if (savedTheme) {
-      setTheme(savedTheme);
-      document.body.setAttribute("data-theme", savedTheme);
-    }
+    const savedTheme = localStorage.getItem("theme") || "light";
+    setTheme(savedTheme);
+    document.body.setAttribute("data-theme", savedTheme);
   }, []);
+
+  // Close mobile drawer on route transition
+  useEffect(() => {
+    setMobileMenuOpen(false);
+  }, [location.pathname]);
 
   const toggleTheme = () => {
     const newTheme = theme === "light" ? "dark" : "light";
@@ -28,96 +61,190 @@ const Navbar: React.FC = () => {
 
   const handleLogout = () => {
     logout();
+    setMobileMenuOpen(false);
     navigate("/login");
   };
 
   return (
-    <motion.nav
-      initial={{ y: -20, opacity: 0 }}
-      animate={{ y: 0, opacity: 1 }}
-      transition={{ duration: 0.35, ease: "easeOut" }}
-      className={`yoga-navbar ${theme}`}
-    >
-      <div className="container d-flex align-items-center justify-content-between">
-        {/* Logo & Branding */}
-        <NavLink className="navbar-brand d-flex align-items-center" to="/">
-          <img src={YogashriniLogo} alt="Yogashrini Logo" className="brand-logo" />
-          <span className="brand-title">Yogashrini</span>
+    <nav className="yoga-navbar-root">
+      <div className="yoga-container navbar-inner">
+        {/* Brand Logo & Name */}
+        <NavLink className="brand-group" to="/">
+          <img src={YogashriniLogo} alt="Yogashrini" className="brand-logo-img" />
+          <span className="brand-name-text">Yogashrini</span>
         </NavLink>
 
-        <ul className="nav-links">
-          <li>
-            <NavLink className="nav-item-link" to="/">Home</NavLink>
-          </li>
-          <li>
-            <NavLink className="nav-item-link" to="/about">About Us</NavLink>
-          </li>
-          <li>
-            <NavLink className="nav-item-link" to="/classes">Classes</NavLink>
-          </li>
-          <li>
-            <NavLink
-              className="nav-item-link"
-              to="/courses"
-              style={({ isActive }) => (isActive ? { color: "#7C3AED", fontWeight: 700 } : {})}
-            >
-              Courses
-            </NavLink>
-          </li>
-          <li>
-            <NavLink className="nav-item-link" to="/retreat">Retreat</NavLink>
-          </li>
-          <li>
-            <NavLink className="nav-item-link" to="/training">Training</NavLink>
-          </li>
-          <li>
-            <NavLink className="nav-item-link" to="/contact">Contact Us</NavLink>
-          </li>
-          <li>
-            <NavLink className="nav-item-link" to="/posture">Posture</NavLink>
-          </li>
-          <li>
-            <NavLink
-              className="nav-item-link nav-live-trainer"
-              to="/live-trainer"
-              style={({ isActive }) => (isActive ? { color: "#00E676", fontWeight: 700 } : {})}
-            >
-              <span className="live-dot-pulse"></span>
-              Live Trainer
-            </NavLink>
-          </li>
-          <li>
-            <NavLink className="nav-item-link" to="/types">Types</NavLink>
-          </li>
+        {/* Desktop Navigation Links */}
+        <ul className="desktop-nav-links">
+          {navItems.map((item) => (
+            <li key={item.path}>
+              <NavLink
+                to={item.path}
+                className={({ isActive }) =>
+                  `nav-link-anchor ${isActive ? "active-link" : ""} ${
+                    item.isLive ? "live-trainer-link" : ""
+                  }`
+                }
+              >
+                {item.isLive && <span className="live-dot-pulse" />}
+                {item.label}
+              </NavLink>
+            </li>
+          ))}
           {!isAuthenticated && (
             <li>
-              <NavLink className="nav-item-link" to="/login">Login</NavLink>
+              <NavLink
+                to="/login"
+                className={({ isActive }) =>
+                  `nav-link-anchor ${isActive ? "active-link" : ""}`
+                }
+              >
+                Sign In
+              </NavLink>
             </li>
           )}
         </ul>
 
-        {/* Right side: user info + controls */}
-        <div className="navbar-right">
+        {/* Desktop Right Actions (User + Theme) */}
+        <div className="navbar-actions-group">
           {isAuthenticated && user && (
-            <div className="navbar-user">
-              <MdPerson size={18} />
-              <span className="navbar-username">{user.name}</span>
+            <div className="user-profile-chip">
+              <MdPerson className="user-icon" size={17} />
+              <span className="user-display-name">{user.name}</span>
               <button
-                className="navbar-logout-btn"
+                className="user-logout-icon-btn"
                 onClick={handleLogout}
-                title="Sign out"
-                aria-label="Sign out"
+                title="Sign Out"
+                aria-label="Sign Out"
               >
-                <MdLogout size={18} />
+                <MdLogout size={16} />
               </button>
             </div>
           )}
-          <button className="theme-toggle-btn" onClick={toggleTheme} aria-label="Toggle theme">
-            {theme === "light" ? <MdDarkMode size={22} /> : <MdLightMode size={22} />}
+
+          <button
+            className="theme-mode-btn"
+            onClick={toggleTheme}
+            aria-label="Toggle visual theme"
+            title={theme === "light" ? "Switch to Dark Mode" : "Switch to Light Mode"}
+          >
+            {theme === "light" ? <MdDarkMode size={20} /> : <MdLightMode size={20} />}
+          </button>
+
+          {/* Mobile Hamburger Toggle Button */}
+          <button
+            className="mobile-hamburger-btn"
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            aria-label={mobileMenuOpen ? "Close navigation menu" : "Open navigation menu"}
+          >
+            {mobileMenuOpen ? <MdClose size={26} /> : <MdMenu size={26} />}
           </button>
         </div>
       </div>
-    </motion.nav>
+
+      {/* Mobile Drawer Overlay and Navigation Sheet */}
+      <AnimatePresence>
+        {mobileMenuOpen && (
+          <>
+            <motion.div
+              className="mobile-drawer-backdrop"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              onClick={() => setMobileMenuOpen(false)}
+            />
+
+            <motion.div
+              className="mobile-drawer-panel"
+              initial={{ x: "100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "100%" }}
+              transition={{ type: "spring", damping: 26, stiffness: 260 }}
+            >
+              <div className="mobile-drawer-header">
+                <div className="d-flex align-items-center gap-2">
+                  <img src={YogashriniLogo} alt="Yogashrini" className="drawer-logo" />
+                  <span className="drawer-brand-title">Yogashrini</span>
+                </div>
+                <button
+                  className="drawer-close-btn"
+                  onClick={() => setMobileMenuOpen(false)}
+                  aria-label="Close menu"
+                >
+                  <MdClose size={24} />
+                </button>
+              </div>
+
+              {isAuthenticated && user && (
+                <div className="drawer-user-card">
+                  <div className="d-flex align-items-center gap-2">
+                    <div className="drawer-user-avatar">
+                      <MdPerson size={20} />
+                    </div>
+                    <div>
+                      <div className="drawer-user-name">{user.name}</div>
+                      <div className="drawer-user-role">{user.role || "Practitioner"}</div>
+                    </div>
+                  </div>
+                  <button className="drawer-logout-btn" onClick={handleLogout}>
+                    <MdLogout size={16} /> Sign Out
+                  </button>
+                </div>
+              )}
+
+              <ul className="mobile-nav-list">
+                {navItems.map((item) => (
+                  <li key={item.path}>
+                    <NavLink
+                      to={item.path}
+                      onClick={() => setMobileMenuOpen(false)}
+                      className={({ isActive }) =>
+                        `mobile-nav-item ${isActive ? "active" : ""} ${
+                          item.isLive ? "live" : ""
+                        }`
+                      }
+                    >
+                      {item.isLive && <span className="live-dot-pulse" />}
+                      <span>{item.label}</span>
+                    </NavLink>
+                  </li>
+                ))}
+                {!isAuthenticated && (
+                  <li>
+                    <NavLink
+                      to="/login"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className={({ isActive }) =>
+                        `mobile-nav-item auth-btn ${isActive ? "active" : ""}`
+                      }
+                    >
+                      Sign In / Register
+                    </NavLink>
+                  </li>
+                )}
+              </ul>
+
+              <div className="mobile-drawer-footer">
+                <button className="drawer-theme-toggle-btn" onClick={toggleTheme}>
+                  {theme === "light" ? (
+                    <>
+                      <MdDarkMode size={18} />
+                      <span>Switch to Dark Mode</span>
+                    </>
+                  ) : (
+                    <>
+                      <MdLightMode size={18} />
+                      <span>Switch to Light Mode</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+    </nav>
   );
 };
 

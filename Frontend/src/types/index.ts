@@ -21,12 +21,26 @@ export interface PoseItem {
   id: number | string;
   english_name: string;
   sanskrit_name: string;
-  img_url: string;
+  img_url?: string;
+  url_png?: string;
+  pose_description?: string;
+  pose_benefits?: string;
   category_name?: string;
   difficulty?: string;
   target_joints?: Record<string, number>;
   benefits?: string[];
   contraindications?: string[];
+}
+
+export interface Product {
+  _id?: string;
+  pname?: string;
+  pdetails?: string;
+  pprice?: number | string;
+  pcategory?: string;
+  pimage?: string;
+  image?: string;
+  stock?: number;
 }
 
 export interface Landmark {

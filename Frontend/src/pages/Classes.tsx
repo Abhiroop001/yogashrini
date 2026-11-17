@@ -1,7 +1,6 @@
+// src/pages/Classes.tsx
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import Navbar from "../inc/Navbar";
-import Footer from "../inc/Footer";
 import "./Classes.css";
 import {
   MdSelfImprovement,
@@ -164,47 +163,41 @@ export const Classes: React.FC = () => {
   };
 
   return (
-    <>
-      <Navbar />
-
-      {/* Hero */}
+    <div className="classes-page-container">
+      {/* Hero Header */}
       <motion.header
-        className="ud-hero classes-hero mb-4"
-        initial={{ opacity: 0, y: -20 }}
+        className="ud-hero-section mb-4"
+        initial={{ opacity: 0, y: -15 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
+        transition={{ duration: 0.4 }}
       >
-        <div className="ud-hero-inner container">
-          <div className="ud-hero-left">
-            <GiMeditation size={72} className="posture-hero-icon" style={{ color: "var(--yoga-primary, #FF2D6F)" }} />
-            <div className="ud-hero-title-wrap">
-              <h1 className="ud-title">Class Schedule & Studio Sessions</h1>
-              <p className="ud-subtitle">
-                Authentic classical yoga sessions led by certified yogacharyas. Join in-person at our sanctuary or
-                participate via live interactive streaming.
+        <div className="yoga-container">
+          <div className="d-flex align-items-center gap-3">
+            <div className="ud-ai-badge-icon">
+              <GiMeditation size={28} />
+            </div>
+            <div>
+              <h1 className="m-0 fs-3 fw-bold">Class Schedule & Studio Sessions</h1>
+              <p className="text-secondary small m-0 mt-1">
+                Authentic classical yoga sessions led by certified yogacharyas. Join in-person or participate via live stream.
               </p>
-              <div className="posture-hero-badges">
-                <span className="posture-badge">Daily In-Studio</span>
-                <span className="posture-badge">Hybrid Streaming</span>
-                <span className="posture-badge">Small Group Mentorship</span>
-              </div>
             </div>
           </div>
         </div>
       </motion.header>
 
-      <main className="container pb-5">
-        {/* Day Filter Pills */}
-        <div className="d-flex align-items-center gap-2 overflow-auto pb-3 mb-4 flex-nowrap">
-          <span className="text-muted fw-bold d-flex align-items-center gap-1 me-2 text-nowrap">
-            <MdFilterList /> Filter by Day:
+      <main className="yoga-container">
+        {/* Day Filter Bar */}
+        <div className="day-filter-bar">
+          <span className="text-muted fw-bold small d-flex align-items-center gap-1 me-2 text-nowrap">
+            <MdFilterList /> Day:
           </span>
           {DAYS.map((day) => (
             <button
               key={day}
               onClick={() => setSelectedDay(day)}
-              className={`btn btn-sm rounded-pill px-3 py-1 text-nowrap ${
-                selectedDay === day ? "btn-primary shadow-sm" : "btn-outline-secondary"
+              className={`btn btn-sm text-nowrap ${
+                selectedDay === day ? "btn-primary" : "btn-secondary"
               }`}
             >
               {day}
@@ -212,138 +205,134 @@ export const Classes: React.FC = () => {
           ))}
         </div>
 
-        {/* Classes Table / Cards */}
-        <div className="row g-4">
+        {/* Classes Cards Grid */}
+        <div className="schedule-grid">
           <AnimatePresence>
             {filtered.map((cls, idx) => (
               <motion.div
                 key={cls.id}
-                className="col-12 col-md-6 col-lg-4"
+                className="schedule-card"
                 initial={{ opacity: 0, y: 15 }}
                 animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.95 }}
-                transition={{ duration: 0.3, delay: idx * 0.04 }}
+                exit={{ opacity: 0, scale: 0.96 }}
+                transition={{ duration: 0.25, delay: idx * 0.03 }}
               >
-                <div className="card h-100 border-0 shadow-sm rounded-4 p-4 d-flex flex-column justify-content-between hover-lift">
-                  <div>
-                    <div className="d-flex justify-content-between align-items-start mb-2">
-                      <span className="badge bg-primary bg-opacity-10 text-primary px-3 py-1 rounded-pill small fw-bold">
-                        {cls.day}
-                      </span>
-                      <span className="badge bg-light text-secondary border px-2 py-1 rounded-pill small">
-                        {cls.level}
-                      </span>
-                    </div>
-
-                    <h5 className="fw-bold mb-2 text-dark">{cls.title}</h5>
-
-                    <div className="text-muted small mb-3 d-flex flex-column gap-2">
-                      <div className="d-flex align-items-center gap-2">
-                        <MdAccessTime className="text-primary" /> {cls.time}
-                      </div>
-                      <div className="d-flex align-items-center gap-2">
-                        <MdPerson className="text-primary" /> {cls.instructor}
-                      </div>
-                      <div className="d-flex align-items-center gap-2">
-                        <MdLocationOn className="text-primary" /> {cls.location}
-                      </div>
-                    </div>
+                <div>
+                  <div className="schedule-card-header">
+                    <span className="badge-pill badge-primary">
+                      {cls.day}
+                    </span>
+                    <span className="badge-pill badge-accent">
+                      {cls.level}
+                    </span>
                   </div>
 
-                  <div className="pt-3 border-top d-flex justify-content-between align-items-center">
-                    <span className="text-muted small">{cls.capacity}</span>
-                    <button
-                      className="btn btn-outline-primary btn-sm rounded-pill px-3 d-flex align-items-center gap-1"
-                      onClick={() => handleBook(cls)}
-                    >
-                      <MdCalendarToday /> Reserve Spot
-                    </button>
+                  <h4 className="schedule-card-title">{cls.title}</h4>
+
+                  <div className="schedule-meta-list">
+                    <div className="schedule-meta-row">
+                      <MdAccessTime style={{ color: "var(--brand-primary)" }} size={16} />
+                      <span>{cls.time}</span>
+                    </div>
+                    <div className="schedule-meta-row">
+                      <MdPerson style={{ color: "var(--brand-primary)" }} size={16} />
+                      <span>{cls.instructor}</span>
+                    </div>
+                    <div className="schedule-meta-row">
+                      <MdLocationOn style={{ color: "var(--brand-primary)" }} size={16} />
+                      <span>{cls.location}</span>
+                    </div>
                   </div>
+                </div>
+
+                <div className="schedule-card-footer">
+                  <span className="text-muted small">{cls.capacity}</span>
+                  <button
+                    className="btn btn-secondary btn-sm"
+                    onClick={() => handleBook(cls)}
+                  >
+                    <MdCalendarToday size={15} /> Reserve Spot
+                  </button>
                 </div>
               </motion.div>
             ))}
           </AnimatePresence>
         </div>
 
-        {/* Booking Modal */}
+        {/* Booking Modal / Mobile Drawer */}
         <AnimatePresence>
           {selectedClass && (
-            <motion.div
-              className="position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center bg-dark bg-opacity-50"
-              style={{ zIndex: 1050 }}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-            >
+            <div className="ud-modal-backdrop">
               <motion.div
-                className="bg-white rounded-4 shadow-lg p-4 m-3"
-                style={{ maxWidth: "480px", width: "100%" }}
-                initial={{ scale: 0.9, y: 20 }}
-                animate={{ scale: 1, y: 0 }}
-                exit={{ scale: 0.9, y: 20 }}
+                className="ud-modal-content"
+                style={{ maxWidth: 480 }}
+                initial={{ scale: 0.95, y: 20, opacity: 0 }}
+                animate={{ scale: 1, y: 0, opacity: 1 }}
+                exit={{ scale: 0.95, y: 20, opacity: 0 }}
               >
-                <div className="d-flex justify-content-between align-items-center mb-3">
-                  <h5 className="fw-bold mb-0 d-flex align-items-center gap-2">
-                    <GiLotus className="text-primary" /> Reserve Session Spot
+                <div className="ud-modal-header">
+                  <h5 className="fw-bold mb-0 fs-6 d-flex align-items-center gap-2">
+                    <GiLotus style={{ color: "var(--brand-primary)" }} /> Reserve Session Spot
                   </h5>
                   <button
-                    className="btn btn-sm btn-light rounded-circle"
+                    className="ud-modal-close-btn"
                     onClick={() => setSelectedClass(null)}
+                    aria-label="Close"
                   >
-                    <MdClose />
+                    <MdClose size={20} />
                   </button>
                 </div>
 
-                {bookingSuccess ? (
-                  <div className="text-center py-4">
-                    <MdCheckCircle className="text-success mb-2" size={48} />
-                    <h5 className="fw-bold text-success">Reservation Confirmed</h5>
-                    <p className="text-muted small">
-                      Your spot for <strong>{selectedClass.title}</strong> has been secured. A confirmation email has been
-                      dispatched.
-                    </p>
-                  </div>
-                ) : (
-                  <form onSubmit={confirmBooking}>
-                    <div className="p-3 bg-light rounded-3 mb-3 small">
-                      <div className="fw-bold text-dark">{selectedClass.title}</div>
-                      <div className="text-muted">
-                        {selectedClass.day} | {selectedClass.time}
+                <div className="ud-modal-body">
+                  {bookingSuccess ? (
+                    <div className="text-center py-4">
+                      <MdCheckCircle className="text-success mb-2" size={48} />
+                      <h5 className="fw-bold text-success mb-1">Reservation Confirmed</h5>
+                      <p className="text-muted small m-0">
+                        Your spot for <strong>{selectedClass.title}</strong> has been secured.
+                      </p>
+                    </div>
+                  ) : (
+                    <form onSubmit={confirmBooking}>
+                      <div className="p-3 rounded-3 mb-3 small" style={{ backgroundColor: "var(--bg-secondary)", border: "1px solid var(--border-subtle)" }}>
+                        <div className="fw-bold">{selectedClass.title}</div>
+                        <div className="text-secondary mt-1">
+                          {selectedClass.day} | {selectedClass.time}
+                        </div>
+                        <div className="text-muted">{selectedClass.instructor}</div>
                       </div>
-                      <div className="text-muted">{selectedClass.instructor}</div>
-                    </div>
 
-                    <div className="mb-3">
-                      <label className="form-label small fw-bold">Full Name</label>
-                      <input type="text" required className="form-control" placeholder="Enter your full name" />
-                    </div>
+                      <div className="mb-3">
+                        <label className="form-label small fw-bold">Full Name</label>
+                        <input type="text" required className="form-control" placeholder="Enter your full name" />
+                      </div>
 
-                    <div className="mb-3">
-                      <label className="form-label small fw-bold">Email Address</label>
-                      <input type="email" required className="form-control" placeholder="name@example.com" />
-                    </div>
+                      <div className="mb-3">
+                        <label className="form-label small fw-bold">Email Address</label>
+                        <input type="email" required className="form-control" placeholder="name@example.com" />
+                      </div>
 
-                    <div className="d-flex gap-2 justify-content-end pt-2">
-                      <button
-                        type="button"
-                        className="btn btn-light rounded-pill px-3"
-                        onClick={() => setSelectedClass(null)}
-                      >
-                        Cancel
-                      </button>
-                      <button type="submit" className="btn btn-primary rounded-pill px-4">
-                        Confirm Reservation
-                      </button>
-                    </div>
-                  </form>
-                )}
+                      <div className="d-flex gap-2 justify-content-end pt-2">
+                        <button
+                          type="button"
+                          className="btn btn-secondary btn-sm"
+                          onClick={() => setSelectedClass(null)}
+                        >
+                          Cancel
+                        </button>
+                        <button type="submit" className="btn btn-primary btn-sm">
+                          Confirm Reservation
+                        </button>
+                      </div>
+                    </form>
+                  )}
+                </div>
               </motion.div>
-            </motion.div>
+            </div>
           )}
         </AnimatePresence>
       </main>
-      <Footer />
-    </>
+    </div>
   );
 };
 
