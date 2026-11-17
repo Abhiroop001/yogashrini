@@ -114,12 +114,15 @@ export const Types: React.FC = () => {
                   <div>
                     <div className="d-flex gap-3 align-items-start mb-3">
                       <div className="types-img-wrap">
-                        {pose.url_png ? (
+                        {(pose.img_url || pose.url_png) ? (
                           <img
-                            src={pose.url_png}
+                            src={pose.img_url || pose.url_png}
                             alt={pose.english_name}
                             className="types-pose-img"
                             loading="lazy"
+                            onError={(e) => {
+                              (e.target as HTMLElement).style.display = "none";
+                            }}
                           />
                         ) : (
                           <MdSelfImprovement size={32} style={{ color: "var(--brand-primary)" }} />
