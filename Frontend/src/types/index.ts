@@ -37,7 +37,12 @@ export interface Product {
   pname?: string;
   pdetails?: string;
   pprice?: number | string;
+  poriginalPrice?: number;
   pcategory?: string;
+  pstatus?: string;
+  pstock?: number;
+  prating?: number;
+  pimg?: string;
   pimage?: string;
   image?: string;
   stock?: number;

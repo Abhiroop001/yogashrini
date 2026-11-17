@@ -17,8 +17,17 @@ import { Product } from "../types";
 
 const API = "http://localhost:2000";
 
-const PLACEHOLDER_SVG =
-  "data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='260' viewBox='0 0 400 260'%3E%3Crect width='100%25' height='100%25' fill='%23f3f4f6'/%3E%3Ctext x='50%25' y='50%25' fill='%239ca3af' font-family='sans-serif' font-size='18' text-anchor='middle' dy='.3em'%3EYoga Product%3C/text%3E%3C/svg%3E";
+const PRODUCT_PLACEHOLDER_SVG =
+  "data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='260' viewBox='0 0 400 260'%3E%3Cdefs%3E%3ClinearGradient id='pg' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' stop-color='%23FF2D6F' stop-opacity='0.15'/%3E%3Cstop offset='100%25' stop-color='%237C3AED' stop-opacity='0.25'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='100%25' height='100%25' fill='url(%23pg)'/%3E%3Ccircle cx='200' cy='115' r='44' fill='%23FF2D6F' fill-opacity='0.16'/%3E%3Cpath d='M188 100 L212 100 L218 132 L182 132 Z' fill='%23FF2D6F'/%3E%3Ccircle cx='200' cy='100' r='8' fill='none' stroke='%23FF2D6F' stroke-width='3'/%3E%3Ctext x='50%25' y='68%25' fill='%23CBD5E1' font-family='sans-serif' font-weight='600' font-size='14' text-anchor='middle'%3EYogashrini Store Item%3C/text%3E%3C/svg%3E";
+
+const getProductImage = (p: Product) => {
+  const img = p.pimg || p.pimage || p.image;
+  if (!img) return null;
+  if (img.startsWith("http://") || img.startsWith("https://") || img.startsWith("data:")) {
+    return img;
+  }
+  return `${API}/product_img/${img}`;
+};
 
 export const Training: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
@@ -227,11 +236,11 @@ export const Training: React.FC = () => {
               >
                 <div className="product-store-card-img-wrap">
                   <img
-                    src={p.pimage ? `${API}/product_img/${p.pimage}` : PLACEHOLDER_SVG}
+                    src={getProductImage(p) || PRODUCT_PLACEHOLDER_SVG}
                     alt={p.pname}
                     className="product-store-card-img"
                     onError={(e) => {
-                      (e.target as HTMLImageElement).src = PLACEHOLDER_SVG;
+                      (e.target as HTMLImageElement).src = PRODUCT_PLACEHOLDER_SVG;
                     }}
                   />
                   {p.pcategory && (
