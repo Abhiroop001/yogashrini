@@ -1,0 +1,325 @@
+{
+  "school_metadata": {
+    "name": "Yogashrini Yoga School",
+    "motto": "Traditional Wisdom, Modern Movement Science",
+    "location": "Rishikesh and Online Global Campus",
+    "curriculum_weeks": 6,
+    "total_poses_mastery": 47,
+    "certifications": ["200-Hour RYT Yoga Alliance", "300-Hour Advanced Vinyasa Certification"],
+    "courses": [
+      {
+        "id": "foundation-hatha",
+        "title": "Foundations of Classical Hatha Yoga",
+        "duration": "6 Weeks",
+        "level": "Beginner to Intermediate",
+        "description": "Comprehensive grounding in foundational asanas, breath mechanics, and alignment principles."
+      },
+      {
+        "id": "vinyasa-flow-mastery",
+        "title": "Dynamic Vinyasa Flow and Biomechanics",
+        "duration": "8 Weeks",
+        "level": "Intermediate to Advanced",
+        "description": "Exploration of synchronized breath-movement transitions, kinetic chain engagement, and core stability."
+      },
+      {
+        "id": "pranayama-meditation",
+        "title": "Pranayama, Subtle Anatomy, and Meditation",
+        "duration": "4 Weeks",
+        "level": "All Levels",
+        "description": "Nadi Shodhana, Kapalabhati, Ujjayi breathwork, and Patanjali Dharana practices for nervous system regulation."
+      }
+    ],
+    "philosophy": {
+      "ashtanga_limbs": [
+        "Yama (Ethical Restraints: Ahimsa, Satya, Asteya, Brahmacharya, Aparigraha)",
+        "Niyama (Self-Disciplines: Saucha, Santosha, Tapas, Svadhyaya, Ishvara Pranidhana)",
+        "Asana (Steady and Comfortable Posture: Sthira Sukham Asanam)",
+        "Pranayama (Breath Regulation)",
+        "Pratyahara (Sense Withdrawal)",
+        "Dharana (Focused Concentration)",
+        "Dhyana (Sustained Meditation)",
+        "Samadhi (Oneness and Absorption)"
+      ]
+    }
+  },
+  "asanas": [
+    {
+      "sanskrit_name": "Vrikshasana",
+      "english_name": "Tree Pose",
+      "category": "Standing Balance",
+      "difficulty": "Beginner to Intermediate",
+      "primary_alignment_cues": [
+        "Ground evenly through all four corners of the standing foot.",
+        "Engage the standing quadriceps and lift the kneecap without hyperextending the joint.",
+        "Place the sole of the lifted foot on the inner thigh or inner calf; avoid placing the foot directly on the knee joint.",
+        "Abduct the bent knee outward while keeping the pelvis level and square to the front.",
+        "Draw the navel gently toward the spine to stabilize the lumbar spine.",
+        "Bring hands to Anjali Mudra (prayer posture) at the sternum or extend arms overhead with shoulders relaxed."
+      ],
+      "joint_angles_standard": {
+        "standing_knee_deg": 178.0,
+        "bent_knee_deg": 48.0,
+        "torso_vertical_tilt_max_deg": 8.0,
+        "hip_abduction_min_deg": 40.0
+      },
+      "benefits": [
+        "Strengthens ankles, calves, and inner thighs.",
+        "Improves neuromuscular balance, proprioception, and poise.",
+        "Stretches the groins, inner thighs, chest, and shoulders.",
+        "Develops sustained mental focus and concentration."
+      ],
+      "contraindications": [
+        "Acute knee ligament injuries (place foot lower on the calf or keep toes touching the floor).",
+        "Severe vertigo or unmanaged inner ear disorders (practice near a wall for balance support).",
+        "Severe osteoarthritis of the hip joint."
+      ],
+      "variations": [
+        "Tree pose with wall support.",
+        "Tree pose with foot resting on a yoga block.",
+        "Tree pose with eyes closed for advanced proprioceptive training."
+      ]
+    },
+    {
+      "sanskrit_name": "Tadasana",
+      "english_name": "Mountain Pose",
+      "category": "Standing Neutral",
+      "difficulty": "Beginner",
+      "primary_alignment_cues": [
+        "Stand with big toes touching or feet hip-width apart.",
+        "Root through the heel, ball of the foot, and outer edge.",
+        "Stack knees over ankles, hips over knees, and shoulders over hips.",
+        "Lengthen the tailbone down toward the heels while drawing the lower belly in.",
+        "Broaden across the collarbones and let the arms rest by the sides with palms forward."
+      ],
+      "joint_angles_standard": {
+        "standing_knee_deg": 180.0,
+        "torso_vertical_tilt_max_deg": 3.0
+      },
+      "benefits": [
+        "Improves structural posture and spinal axial alignment.",
+        "Strengthens thighs, knees, and ankles.",
+        "Reduces flat feet symptoms and tones the pelvic floor."
+      ],
+      "contraindications": [
+        "Headache or lightheadedness (widen stance).",
+        "Low blood pressure episodes."
+      ],
+      "variations": [
+        "Urdhva Hastasana (Upward Salute with arms extended).",
+        "Tadasana with a yoga block between the inner thighs to reinforce adductor engagement."
+      ]
+    },
+    {
+      "sanskrit_name": "Adho Mukha Svanasana",
+      "english_name": "Downward-Facing Dog",
+      "category": "Inversion / Arm Balance",
+      "difficulty": "Beginner to Intermediate",
+      "primary_alignment_cues": [
+        "Spread fingers wide, rooting through the index finger and thumb knuckles (Hasta Bandha).",
+        "Rotate the upper arms outward to create space around the cervical spine.",
+        "Send sitting bones high and back, lengthening from wrists to pelvis.",
+        "Maintain axial elongation in the spine before attempting to straighten the knees.",
+        "Descend heels toward the mat without collapsing the inner arches."
+      ],
+      "joint_angles_standard": {
+        "shoulder_flexion_deg": 170.0,
+        "hip_flexion_deg": 70.0
+      },
+      "benefits": [
+        "Decompresses the entire spinal column.",
+        "Strengthens shoulders, triceps, serratus anterior, and wrist flexors.",
+        "Stretches the hamstrings, calves, and Achilles tendons."
+      ],
+      "contraindications": [
+        "Carpal tunnel syndrome (use forearm modification or incline blocks).",
+        "Late-stage pregnancy.",
+        "Severe uncontrolled hypertension."
+      ],
+      "variations": [
+        "Bent-knee downward dog to prioritize lumbar elongation.",
+        "Dolphin pose (Pincha Mayurasana prep on forearms)."
+      ]
+    },
+    {
+      "sanskrit_name": "Virabhadrasana I",
+      "english_name": "Warrior I Pose",
+      "category": "Standing Asymmetric",
+      "difficulty": "Intermediate",
+      "primary_alignment_cues": [
+        "Front knee bent at a 90-degree angle directly stacked over the front ankle.",
+        "Back foot grounded at a 45-degree angle with the outer heel firmly pressed down.",
+        "Square both anterior superior iliac spines (hip points) toward the front edge of the mat.",
+        "Lift the arch of the rear foot and engage the rear quadriceps.",
+        "Elevate arms overhead, drawing the lower ribs inward to prevent excessive lumbar arching."
+      ],
+      "joint_angles_standard": {
+        "front_knee_flexion_deg": 90.0,
+        "rear_knee_extension_deg": 180.0
+      },
+      "benefits": [
+        "Strengthens quadriceps, gluteus medius, and calf musculature.",
+        "Lengthens the psoas major and hip flexors of the posterior leg.",
+        "Expands thoracic lung capacity."
+      ],
+      "contraindications": [
+        "Recent spinal disk herniation (limit pelvic backbend).",
+        "Hypertension (keep hands on hips rather than overhead)."
+      ],
+      "variations": [
+        "High Lunge (Crescent Lunge with back heel lifted).",
+        "Hands in prayer position at chest center."
+      ]
+    },
+    {
+      "sanskrit_name": "Virabhadrasana II",
+      "english_name": "Warrior II Pose",
+      "category": "Standing Asymmetric",
+      "difficulty": "Beginner to Intermediate",
+      "primary_alignment_cues": [
+        "Front knee tracking in line with the second and third toes, stacked at 90 degrees.",
+        "Back foot parallel or slightly angled inward to the back edge of the mat.",
+        "Pelvis open toward the long side of the mat while maintaining front knee abduction.",
+        "Extend arms parallel to the floor at shoulder height, reaching actively through both fingertips.",
+        "Gaze steadily over the middle finger of the front hand (Drishti)."
+      ],
+      "joint_angles_standard": {
+        "front_knee_flexion_deg": 90.0,
+        "rear_knee_deg": 180.0,
+        "shoulder_abduction_deg": 90.0
+      },
+      "benefits": [
+        "Strengthens lower extremity stabilizers and core endurance.",
+        "Deeply opens hips and stretches adductor muscles.",
+        "Fosters psychological resilience and grounded stability."
+      ],
+      "contraindications": [
+        "Meniscus or knee collateral ligament pathology (shorten stance width).",
+        "Chronic shoulder impingement (keep arms lower than shoulder line)."
+      ],
+      "variations": [
+        "Warrior II with chair support under the front thigh.",
+        "Restricted arm elevation with hands at heart center."
+      ]
+    },
+    {
+      "sanskrit_name": "Balasana",
+      "english_name": "Child's Pose",
+      "category": "Restorative / Forward Bend",
+      "difficulty": "Beginner",
+      "primary_alignment_cues": [
+        "Kneel on the floor with big toes touching and knees comfortably wide.",
+        "Sink hips back toward the heels.",
+        "Fold the torso forward between the thighs, resting forehead gently on the mat.",
+        "Extend arms forward with palms down or drape them back along the shins with palms up.",
+        "Breathe deeply into the posterior ribs and lumbar space."
+      ],
+      "joint_angles_standard": {
+        "hip_flexion_deg": 40.0,
+        "knee_flexion_deg": 35.0
+      },
+      "benefits": [
+        "Calms the central nervous system, shifting tone to parasympathetic dominance.",
+        "Gently opens hips, thighs, and ankles.",
+        "Relieves fatigue, stress, and mild lower back tension."
+      ],
+      "contraindications": [
+        "Acute knee inflammation or recent knee surgery.",
+        "Diarrhea or acute digestive distress."
+      ],
+      "variations": [
+        "Child's pose with a bolster beneath the torso.",
+        "Child's pose with folded blanket under knees or behind knee creases."
+      ]
+    },
+    {
+      "sanskrit_name": "Bhujangasana",
+      "english_name": "Cobra Pose",
+      "category": "Prone Backbend",
+      "difficulty": "Beginner to Intermediate",
+      "primary_alignment_cues": [
+        "Lie prone with legs extended and the tops of the feet pressed firmly into the floor.",
+        "Position palms beneath shoulders with elbows hugged close to the ribcage.",
+        "Inhale and lift the chest off the floor using spinal extensor musculature rather than pushing through the arms.",
+        "Maintain broad clavicles and draw the shoulder blades down the back.",
+        "Keep the cervical spine neutral, avoiding hyper-extension of the neck."
+      ],
+      "joint_angles_standard": {
+        "lumbar_extension_deg": 25.0,
+        "elbow_flexion_deg": 120.0
+      },
+      "benefits": [
+        "Strengthens the erector spinae, latissimus dorsi, and gluteal muscles.",
+        "Increases spinal mobility and counters sedentary slouching.",
+        "Stimulates abdominal organs and opens the chest."
+      ],
+      "contraindications": [
+        "Spondylolisthesis or severe spinal stenosis.",
+        "Carpal tunnel syndrome (use Sphinx pose on forearms).",
+        "Pregnancy."
+      ],
+      "variations": [
+        "Salamba Bhujangasana (Sphinx Pose with forearms on the ground).",
+        "Baby Cobra without weight in hands."
+      ]
+    },
+    {
+      "sanskrit_name": "Setu Bandhasana",
+      "english_name": "Bridge Pose",
+      "category": "Supine Backbend",
+      "difficulty": "Beginner to Intermediate",
+      "primary_alignment_cues": [
+        "Lie supine with knees bent and feet planted parallel, hip-width apart.",
+        "Heels positioned close to sitting bones, reachable with fingertips.",
+        "Press through all four corners of both feet and lift hips toward the ceiling.",
+        "Roll shoulder heads beneath the torso and interlace fingers along the mat.",
+        "Keep thighs parallel, avoiding outward splaying of the knees."
+      ],
+      "joint_angles_standard": {
+        "hip_extension_deg": 175.0,
+        "knee_flexion_deg": 90.0
+      },
+      "benefits": [
+        "Strengthens gluteus maximus, hamstrings, and spinal extensors.",
+        "Opens the anterior chest, sternum, and anterior hip flexors.",
+        "Rejuvenates tired legs and calms cerebral overactivity."
+      ],
+      "contraindications": [
+        "Acute cervical spine pathology (do not turn head while hips are elevated).",
+        "Third-trimester pregnancy."
+      ],
+      "variations": [
+        "Supported Bridge with a yoga block placed horizontally under the sacrum.",
+        "One-legged bridge (Eka Pada Setu Bandhasana) for unilateral strength."
+      ]
+    },
+    {
+      "sanskrit_name": "Savasana",
+      "english_name": "Corpse Pose",
+      "category": "Restorative / Integration",
+      "difficulty": "All Levels",
+      "primary_alignment_cues": [
+        "Lie completely flat on the back with legs extended and feet falling open naturally.",
+        "Place arms at a 30-degree angle from the torso with palms facing upward.",
+        "Allow the jaw, tongue, eyes, and brow to release all muscular tension.",
+        "Let the breath return to its natural, unforced autonomic rhythm.",
+        "Remain motionless and consciously present for 5 to 15 minutes."
+      ],
+      "joint_angles_standard": {
+        "neutral_plane": "Supine Anatomic Neutral"
+      },
+      "benefits": [
+        "Consolidates physiological benefits of the physical asana practice.",
+        "Reduces systemic cortisol levels and balances blood pressure.",
+        "Facilitates cellular recovery and deep psychological rejuvenation."
+      ],
+      "contraindications": [
+        "Severe respiratory discomfort or acid reflux (elevate head and chest with a bolster).",
+        "Late-term pregnancy (lie in left lateral decubitus position)."
+      ],
+      "variations": [
+        "Savasana with a bolster beneath the knee popliteal fossa to relieve lumbar strain.",
+        "Weighted Savasana with a sandbag on the pelvis or eye pillow over the orbits."
+      ]
+    }
+  ]
+}

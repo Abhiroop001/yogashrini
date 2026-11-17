@@ -156,3 +156,30 @@ body {
 .navbar-logout-btn:hover {
   background: color-mix(in srgb, var(--yoga-primary, #FF2D6F) 15%, transparent) !important;
 }
+
+/* Pulsing Live indicator dot */
+.live-dot-pulse {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background-color: #00E676;
+  box-shadow: 0 0 0 0 rgba(0, 230, 118, 0.7);
+  animation: pulse-green 1.5s infinite;
+  margin-right: 4px;
+}
+
+@keyframes pulse-green {
+  0% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(0, 230, 118, 0.7);
+  }
+  70% {
+    transform: scale(1.15);
+    box-shadow: 0 0 0 6px rgba(0, 230, 118, 0);
+  }
+  100% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(0, 230, 118, 0);
+  }
+}

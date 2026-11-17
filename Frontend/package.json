@@ -10,6 +10,7 @@
     "bootstrap": "^5.3.7",
     "chart.js": "^4.5.0",
     "formik": "^2.4.6",
+    "framer-motion": "^14.14.0",
     "react": "^19.1.1",
     "react-chartjs-2": "^5.3.0",
     "react-dom": "^19.1.1",
@@ -20,8 +21,10 @@
     "yup": "^1.7.0"
   },
   "scripts": {
-    "start": "react-scripts start",
-    "build": "react-scripts build",
+    "dev": "vite",
+    "start": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
   },
@@ -42,5 +45,13 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.6",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.3.0",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.8"
   }
 }
