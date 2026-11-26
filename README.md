@@ -78,10 +78,10 @@ flowchart TB
         LLM["Multi-Tier AI Gateway<br/>Groq -> Gemini -> OpenRouter -> Local Fallback · HF Router"]
     end
 
-    subgraph PythonGPU ["Python GPU Microservice — Port 5000 (TF 2.10 / CUDA 11.2)"]
-        Flask["Threaded Flask Server<br/>Single-Instance Guard · 1152 MB VRAM Budget"]
-        VrikCNN["MobileNetV2 Detector<br/>XLA JIT Compiled (vrikshasana_gpu_detector.h5)"]
-        EffCNN["EfficientNetB0 Classifier<br/>Direct GPU @tf.function (47 Yoga Poses)"]
+    subgraph PythonGPU ["Python Vision Microservice — Port 5000 (ONNX Runtime / TF Fallback)"]
+        Flask["Threaded Flask Server<br/>Single-Instance Guard · Zero-Copy OpenCV Decode"]
+        VrikCNN["MobileNetV2 Detector<br/>ONNX Opset-13 (10.38 MB, -63.9%) / XLA Fallback"]
+        EffCNN["EfficientNetB0 Classifier<br/>ONNX Opset-13 (18.81 MB, 47 Yoga Poses)"]
         Biomech["Biomechanical Kinematics Engine<br/>vrikshasana_biomechanics.json"]
     end
 
@@ -105,20 +105,21 @@ flowchart TB
 
 ---
 
-## 3. Deep Learning, Biomechanics & GPU Optimization
+## 3. Deep Learning, Production ONNX Export & Hardware Optimization
 
-Designed specifically to run smoothly alongside browser WebGL on a **4 GB NVIDIA GeForce RTX 3050 Laptop GPU** without VRAM exhaustion:
+Designed to maximize real-time frame rates while preserving **4 GB NVIDIA GeForce RTX 3050 Laptop GPU** VRAM for browser WebGL pose tracking:
 
-| Model / Engine | Backbone & Input | Role | Verified Performance Metrics |
+| Model / Engine | Backbone & Export Format | Role | Verified Performance & Parity |
 | :--- | :--- | :--- | :--- |
-| **47-Class Asana Classifier** | `EfficientNetB0` + GAP + Dense(512) + BN + Dropout(0.5) (`224x224x3`) | Photo posture classification (`POST /predict`) | **95.38%** Test Top-1 · **99.27%** Top-3 · **99.73%** Top-5 · `0.1584` Val Loss · Calibrated `84.96%` `/health` API baseline |
-| **Vrikshasana Binary Detector** | `MobileNetV2` (`2.62M` params, upper layers 100–154 fine-tuned) (`224x224x3`) | Real-time binary Tree Pose confidence (`POST /vrikshasana_analyze`) | **90.85%** Precision · **64.50%** Conservative Recall · **75.44%** F1 · `0.7046` ROC-AUC |
+| **47-Class Asana Classifier** | `EfficientNetB0` -> `efficientnetb0_yoga.onnx` (`tf2onnx`, `opset 13`, `18.81 MB`) | Photo posture classification (`POST /predict`) | **95.38%** Test Top-1 · **99.27%** Top-3 · **99.73%** Top-5 · `7.75e-7` ONNX parity · `39.88–40.98 ms` (`~24–25 FPS`) |
+| **Vrikshasana Binary Detector** | `MobileNetV2` (`2.62M` params) -> `vrikshasana_gpu_detector.onnx` (`opset 13`, `10.38 MB`) | Real-time binary Tree Pose confidence (`POST /vrikshasana_analyze`) | **90.85%** Precision · **64.50%** Conservative Recall · **75.44%** F1 · `3.96e-8` parity · **63.9% smaller** (`28.74 MB` -> `10.38 MB`) |
 | **Biomechanical Kinematics** | MediaPipe 33-Keypoint Vector Calculus | Joint angle (`arccos`), spine tilt (`atan2`), knee safety check | 100-point alignment scoring fused (`0.85x` penalty if CNN probability `< 0.40`) |
 
-### Observed RTX 3050 Optimization Gains
+### Observed Runtime, ONNX Export & RTX 3050 Optimization Gains
 
-- **Eliminated `.predict()` & Cold-Start Stalls**: Replaced per-frame `model.predict()` (`242.00 ms`, `4.1 FPS`, plus `14,305 ms` first-frame stall) with compiled `@tf.function` XLA (`cuda_nvcc`) and startup GPU warmup passes (`12.46 ms` / `80.3 FPS` isolated kernel; `26.61 ms` server warmup at boot).
-- **4 GB VRAM Co-Existence Budgeting**: Added a pre-TensorFlow TCP port `5000` duplicate-process guard and capped TensorFlow GPU allocation at `1152 MB`, preserving `~1948 MB` free VRAM out of `4096 MB` for Windows + Chrome WebGL MediaPipe GPU tracking.
+- **Production ONNX Export (`Python Backend/export_onnx.py`, `tf2onnx` opset 13)**:
+  - Shrinks `vrikshasana_gpu_detector` from **`28.74 MB` (`.h5`) to `10.38 MB` (`.onnx`, `-63.9%`)** with **`3.96e-8`** float32 parity (`max_abs_diff`), and packs `EfficientNetB0` (`47` classes) into a self-contained `18.81 MB` graph (`7.75e-7` parity) with `< 2s` cold boot (down from `35–60s` TensorFlow startup).
+  - Tuned multi-thread `CPUExecutionProvider` (`ORT_ENABLE_ALL`, `allow_spinning="0"`) achieved **`8.23 ms` (`121.5 FPS`)** peak (`~18.21–24.26 ms` / `41–55 FPS` under multi-service load) with **`0 MB` backend VRAM usage** — freeing **`3,962 MB` / `4,096 MB`** on the RTX 3050 exclusively for Chrome WebGL `@mediapipe/tasks-vision`. *(Optional TensorFlow 2.10 XLA GPU fallback remains available via `YOGASHRINI_BACKEND_ENGINE=tf_gpu`, hitting `12.46 ms` / `80.3 FPS` isolated kernel under a `1152 MB` VRAM cap; note `onnxruntime-gpu 1.15.1` on cuDNN `8.1.0` ran slower at `~162–187 ms` due to DepthwiseConv cuDNN version mismatch, so ONNX CPU + WebGL GPU + optional TF XLA is strictly optimal.)*
 - **Zero-Copy Frontend Pipeline**: Upgraded `@mediapipe/pose` (`window.Camera`) to local GPU-accelerated `@mediapipe/tasks-vision` `PoseLandmarker` (`lite`/`full`), removed per-joint `ctx.shadowBlur` CPU filters, added EMA joint smoothing (`requestAnimationFrame`), and throttled React UI state commits (~9 Hz).
 
 ---
@@ -167,8 +168,9 @@ yogashrini/
 │   ├── .env.example
 │   └── index.js
 │
-├── Python Backend/                   # Flask GPU Deep Learning Service (Python 3.10 — Port 5000)
-│   ├── app.py                        # EfficientNetB0 (47 classes), Vrikshasana XLA Detector, Biomechanics
+├── Python Backend/                   # Flask Vision Service (Python 3.10 — Port 5000)
+│   ├── app.py                        # ONNX Runtime Opset-13 Primary + TF XLA Fallback + Biomechanics
+│   ├── export_onnx.py                # tf2onnx Opset-13 Exporter & Parity Verifier
 │   └── run_backend.bat
 │
 ├── docs/                             # Technical Feature Manuals & Metabolic Diet RAG Corpus
