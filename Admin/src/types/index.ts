@@ -39,6 +39,7 @@ export interface Product {
   pcategory?: string;
   pdetails?: string;
   pimage?: string;
+  pimg?: string;
   pstock?: number;
 }
 

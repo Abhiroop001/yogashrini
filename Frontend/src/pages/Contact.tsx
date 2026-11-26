@@ -6,19 +6,31 @@ import "./Contact.css";
 import { FaWhatsapp, FaEnvelope, FaPhoneAlt, FaInstagram } from "react-icons/fa";
 import { MdSend, MdCheckCircle, MdLocationOn, MdSchedule } from "react-icons/md";
 import { GiLotus } from "react-icons/gi";
+import { useAuth } from "../AuthContext";
 
 export const Contact: React.FC = () => {
+  const { user } = useAuth();
   const location = useLocation();
   const searchParams = new URLSearchParams(location.search);
   const initialProduct = searchParams.get("product") || location.state?.productName || "";
 
   const [form, setForm] = useState({
-    name: "",
-    email: "",
+    name: user?.name || "",
+    email: user?.email || "",
     phone: "",
     subject: initialProduct ? `Inquiry regarding ${initialProduct}` : "General Inquiry",
     message: initialProduct ? `Hello Yogashrini, I would like to inquire about ${initialProduct}.` : "",
   });
+
+  useEffect(() => {
+    if (user?.name || user?.email) {
+      setForm((f) => ({
+        ...f,
+        name: f.name || user?.name || "",
+        email: f.email || user?.email || "",
+      }));
+    }
+  }, [user?.name, user?.email]);
 
   const [showForm, setShowForm] = useState<boolean>(Boolean(initialProduct));
   const [submitting, setSubmitting] = useState<boolean>(false);
@@ -50,7 +62,7 @@ export const Contact: React.FC = () => {
   };
 
   const whatsappUrl = `https://wa.me/919876543210?text=${encodeURIComponent(
-    `Hello Yogashrini! My name is ${form.name || "[Name]"}. Subject: ${form.subject}. Message: ${form.message}`
+    `Hello Yogashrini! ${form.name ? `My name is ${form.name}. ` : ""}Subject: ${form.subject}. ${form.message || "I would like to connect with the sanctuary team."}`
   )}`;
 
   return (
@@ -77,7 +89,7 @@ export const Contact: React.FC = () => {
         </div>
       </motion.div>
 
-      <main className="yoga-container">
+      <div className="yoga-container">
         <div className="row g-4 mb-5">
           {/* Direct Concierge Card */}
           <div className="col-12 col-lg-6">
@@ -323,7 +335,7 @@ export const Contact: React.FC = () => {
             loading="lazy"
           />
         </div>
-      </main>
+      </div>
     </div>
   );
 };

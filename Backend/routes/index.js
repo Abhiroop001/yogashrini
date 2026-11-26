@@ -75,7 +75,8 @@ router.post("/chat", async (req, res, next) => {
       return res.status(400).json({ error: "No message provided or message is invalid." });
     }
 
-    const result = await ragService.queryWithRAG(message, Array.isArray(history) ? history : []);
+    const apiBase = `${req.protocol}://${req.get("host")}`;
+    const result = await ragService.queryWithRAG(message, Array.isArray(history) ? history : [], apiBase);
     return res.json({
       choices: [
         {
@@ -85,6 +86,7 @@ router.post("/chat", async (req, res, next) => {
         }
       ],
       sources: result.sources,
+      images: result.images || [],
       engine: {
         model: result.model,
         provider: result.provider

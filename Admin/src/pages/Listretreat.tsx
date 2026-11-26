@@ -7,8 +7,7 @@ import Footer from "../inc/Footer";
 import { MdAdd, MdEdit, MdDelete, MdSearch, MdCalendarToday } from "react-icons/md";
 import { RiMapPin2Line, RiCoinsLine } from "react-icons/ri";
 import { Retreat } from "../types";
-
-const API = "http://localhost:2000";
+import { adminFetch } from "../utils/api";
 
 export const Listretreat: React.FC = () => {
   const [retreats, setRetreats] = useState<Retreat[]>([]);
@@ -18,7 +17,7 @@ export const Listretreat: React.FC = () => {
 
   const getdata = useCallback(async () => {
     try {
-      const resp = await fetch(`${API}/retreat/sel`);
+      const resp = await adminFetch("/retreat/sel");
       const data = await resp.json();
       setRetreats(Array.isArray(data) ? data : []);
     } catch {
@@ -37,7 +36,7 @@ export const Listretreat: React.FC = () => {
     const fd = new FormData();
     fd.append("id", id);
     try {
-      await fetch(`${API}/retreat/del`, { method: "POST", body: fd });
+      await adminFetch("/retreat/del", { method: "POST", body: fd });
       setMsg({ type: "success", text: "Retreat schedule removed" });
       getdata();
       setTimeout(() => setMsg(null), 2500);
@@ -88,29 +87,13 @@ export const Listretreat: React.FC = () => {
               <div className="ys-card-title">
                 <RiMapPin2Line style={{ color: "#7C3AED" }} /> Scheduled Retreat Itineraries
               </div>
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 8,
-                  background: "#f4f5fa",
-                  borderRadius: 8,
-                  padding: "8px 14px",
-                  border: "1px solid #e5e7eb",
-                }}
-              >
-                <MdSearch style={{ color: "#9ca3af" }} />
+              <div className="admin-search-box">
+                <MdSearch style={{ color: "var(--text-muted)" }} />
                 <input
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   placeholder="Filter by location or name..."
-                  style={{
-                    border: "none",
-                    background: "transparent",
-                    outline: "none",
-                    fontSize: 13,
-                    width: 180,
-                  }}
+                  style={{ width: 180 }}
                 />
               </div>
             </div>
@@ -143,7 +126,7 @@ export const Listretreat: React.FC = () => {
                     {filtered.map((r) => (
                       <tr key={r._id}>
                         <td>
-                          <div style={{ fontWeight: 700, color: "#1e1e2e" }}>{r.rname}</div>
+                          <div style={{ fontWeight: 700, color: "var(--text-primary)" }}>{r.rname}</div>
                         </td>
                         <td>
                           {r.rdate ? (
@@ -165,7 +148,7 @@ export const Listretreat: React.FC = () => {
                             <span style={{ color: "#9ca3af" }}>TBA</span>
                           )}
                         </td>
-                        <td style={{ maxWidth: 220, color: "#6b7280", fontSize: 13 }}>
+                        <td style={{ maxWidth: 220, color: "var(--text-secondary)", fontSize: 13 }}>
                           {r.ractivities
                             ? r.ractivities.length > 70
                               ? r.ractivities.slice(0, 70) + "..."

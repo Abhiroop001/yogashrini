@@ -2,9 +2,10 @@
 const express = require("express");
 const router = express.Router();
 const ac = require("../controller/admin_controller");
+const { authenticate, optionalAuth, requireAdmin } = require("../middleware/auth");
 
-// Admin seed and login routes
-router.get("/add", ac.addadmin);
+router.get("/add", optionalAuth, ac.addadmin);
 router.post("/login", ac.login);
+router.get("/verify", authenticate, requireAdmin, ac.verify);
 
 module.exports = router;

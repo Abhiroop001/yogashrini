@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import Sidebar from "../inc/Sidebar";
 import Top from "../inc/Top";
 import Footer from "../inc/Footer";
+import { adminFetch, getAdminToken, API_BASE as API } from "../utils/api";
 import {
   MdAdd,
   MdDelete,
@@ -16,8 +17,6 @@ import {
   MdStar,
 } from "react-icons/md";
 import { RiAwardLine, RiCoinsLine } from "react-icons/ri";
-
-const API = "http://localhost:2000";
 
 interface VideoMetadata {
   title: string;
@@ -106,7 +105,7 @@ const WeekForm: React.FC<WeekFormProps> = ({ courseId, onSaved, editData = null,
         ? `${API}/course/${courseId}/week/${editData._id}`
         : `${API}/course/${courseId}/week`;
       const method = editData ? "PUT" : "POST";
-      const r = await fetch(url, { method, body: fd });
+      const r = await adminFetch(url, { method, body: fd });
       const data = await r.json();
       if (r.ok) {
         onSaved();
@@ -256,11 +255,11 @@ const WeekForm: React.FC<WeekFormProps> = ({ courseId, onSaved, editData = null,
               <div
                 key={idx}
                 style={{
-                  border: "1px solid #e5e7eb",
+                  border: "1px solid var(--border)",
                   borderRadius: 10,
                   padding: 14,
                   marginBottom: 10,
-                  background: "#fafbff",
+                  background: "var(--surface-subtle)",
                 }}
               >
                 <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 10 }}>
@@ -338,8 +337,8 @@ export const ManageCourse: React.FC = () => {
     if (!id) return;
     try {
       const [cr, wr] = await Promise.all([
-        fetch(`${API}/course/${id}`),
-        fetch(`${API}/course/${id}/weeks`),
+        adminFetch(`/course/${id}`),
+        adminFetch(`/course/${id}/weeks`),
       ]);
       const cd = await cr.json();
       const wd = await wr.json();
@@ -356,7 +355,7 @@ export const ManageCourse: React.FC = () => {
 
   const deleteWeek = async (weekId: string) => {
     if (!id || !window.confirm("Delete this week module and its videos?")) return;
-    const r = await fetch(`${API}/course/${id}/week/${weekId}`, { method: "DELETE" });
+    const r = await adminFetch(`/course/${id}/week/${weekId}`, { method: "DELETE" });
     if (r.ok) {
       setMsg({ type: "success", text: "Week module deleted" });
       loadData();
@@ -462,7 +461,7 @@ export const ManageCourse: React.FC = () => {
           {/* Regular Weeks */}
           {regularWeeks.length > 0 && (
             <div style={{ marginBottom: 24 }}>
-              <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 12, color: "#374151" }}>
+              <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 12, color: "var(--text-primary)" }}>
                 <MdVideoLibrary style={{ color: "#7C3AED", marginRight: 6 }} />
                 Core Curriculum Weeks ({regularWeeks.length})
               </div>
@@ -513,7 +512,7 @@ export const ManageCourse: React.FC = () => {
                           {v.description && <div style={{ fontSize: 11, color: "#9ca3af" }}>{v.description}</div>}
                         </div>
                         <a
-                          href={`${API}/videos/${v.filename}`}
+                          href={`${API}/videos/${v.filename}?token=${encodeURIComponent(getAdminToken() || "")}`}
                           target="_blank"
                           rel="noreferrer"
                           className="btn-edit-ys btn-sm-ys"
@@ -531,7 +530,7 @@ export const ManageCourse: React.FC = () => {
           {/* Bonus Weeks */}
           {bonusWeeks.length > 0 && (
             <div style={{ marginBottom: 24 }}>
-              <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 12, color: "#374151" }}>
+              <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 12, color: "var(--text-primary)" }}>
                 <MdStar style={{ color: "#f59e0b", marginRight: 6 }} />
                 Bonus Mastery Modules ({bonusWeeks.length})
               </div>

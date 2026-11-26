@@ -5,8 +5,7 @@ import Sidebar from "../inc/Sidebar";
 import Top from "../inc/Top";
 import Footer from "../inc/Footer";
 import { MdSave, MdArrowBack, MdSpa, MdCloudUpload } from "react-icons/md";
-
-const API = "http://localhost:2000";
+import { adminFetch } from "../utils/api";
 
 export const Addproduct: React.FC = () => {
   const nav = useNavigate();
@@ -54,7 +53,7 @@ export const Addproduct: React.FC = () => {
     if (imgFile) fd.append("pimg", imgFile);
 
     try {
-      const r = await fetch(`${API}/product/add`, { method: "POST", body: fd });
+      const r = await adminFetch("/product/add", { method: "POST", body: fd });
       const data = await r.json();
       if (r.ok) {
         setMsg({ type: "success", text: "Product added successfully!" });
@@ -99,7 +98,7 @@ export const Addproduct: React.FC = () => {
           </AnimatePresence>
 
           <form onSubmit={handleSubmit}>
-            <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 24 }}>
+            <div className="admin-form-split">
               <div>
                 <div className="ys-card" style={{ marginBottom: 20 }}>
                   <div className="ys-card-header">

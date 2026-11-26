@@ -5,8 +5,7 @@ import Sidebar from "../inc/Sidebar";
 import Top from "../inc/Top";
 import Footer from "../inc/Footer";
 import { MdCloudUpload, MdSchool, MdSave, MdArrowBack } from "react-icons/md";
-
-const API = "http://localhost:2000";
+import { adminFetch } from "../utils/api";
 
 export const AddCourse: React.FC = () => {
   const nav = useNavigate();
@@ -50,7 +49,7 @@ export const AddCourse: React.FC = () => {
     if (thumbFile) fd.append("thumbnail", thumbFile);
 
     try {
-      const r = await fetch(`${API}/course`, { method: "POST", body: fd });
+      const r = await adminFetch("/course", { method: "POST", body: fd });
       const data = await r.json();
       if (r.ok) {
         setMsg({ type: "success", text: "Course initialized! Redirecting to syllabus manager..." });
@@ -95,7 +94,7 @@ export const AddCourse: React.FC = () => {
           </AnimatePresence>
 
           <form onSubmit={handleSubmit}>
-            <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 24 }}>
+            <div className="admin-form-split">
               {/* Main Information */}
               <div>
                 <div className="ys-card" style={{ marginBottom: 20 }}>

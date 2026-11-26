@@ -2,6 +2,7 @@
 // Centralized Environment Configuration & Validation for Yogashrini Platform
 const path = require("path");
 const fs = require("fs");
+const crypto = require("crypto");
 
 // Load .env from Server/.env first, then root if present
 const serverEnvPath = path.join(__dirname, "../.env");
@@ -15,15 +16,23 @@ if (fs.existsSync(serverEnvPath)) {
   require("dotenv").config();
 }
 
+// Never fall back to a predictable literal JWT secret
+const resolvedJwtSecret =
+  process.env.JWT_SECRET ||
+  (() => {
+    console.warn("[Config Warning] JWT_SECRET missing in environment. Generating ephemeral runtime secret.");
+    return crypto.randomBytes(48).toString("hex");
+  })();
+
 const config = {
   PORT: parseInt(process.env.PORT, 10) || 2000,
   NODE_ENV: process.env.NODE_ENV || "development",
-  
+
   // Database Configuration
   MONGO_URI: process.env.MONGO_URI,
 
   // JWT Authentication
-  JWT_SECRET: process.env.JWT_SECRET || "yogashrini_jwt_secret_secure_key_2024",
+  JWT_SECRET: resolvedJwtSecret,
   JWT_EXPIRES: process.env.JWT_EXPIRES || "7d",
 
   // Razorpay Payment Gateway
@@ -51,7 +60,6 @@ const config = {
   ]
 };
 
-// Validate Critical Environment Variables
 if (!config.MONGO_URI) {
   console.warn("[Config Warning] MONGO_URI is missing from environment. Define MONGO_URI in Server/.env");
 }

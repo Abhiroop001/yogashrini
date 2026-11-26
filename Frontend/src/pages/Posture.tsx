@@ -1,6 +1,6 @@
-// src/pages/Posture.tsx
+// Frontend/src/pages/Posture.tsx
 import React, { useRef, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import "./Posture.css";
 import { GiMeditation } from "react-icons/gi";
 import {
@@ -8,8 +8,7 @@ import {
   MdAutoAwesome,
   MdBarChart,
   MdRefresh,
-  MdCheckCircle,
-  MdErrorOutline
+  MdErrorOutline,
 } from "react-icons/md";
 
 interface TopPrediction {
@@ -86,17 +85,17 @@ export const Posture: React.FC = () => {
 
   return (
     <div className="posture-page">
-      {/* Hero Header */}
-      <motion.div
-        className="ud-hero-section mb-4"
-        initial={{ opacity: 0, y: -15 }}
+      {/* Compact Hero Header */}
+      <motion.header
+        className="ud-hero-section mb-3"
+        initial={{ opacity: 0, y: -12 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4 }}
+        transition={{ duration: 0.35 }}
       >
         <div className="yoga-container">
           <div className="d-flex align-items-center gap-3">
             <div className="ud-ai-badge-icon">
-              <GiMeditation size={28} />
+              <GiMeditation size={24} />
             </div>
             <div>
               <h1 className="m-0 fs-3 fw-bold">AI Asana Posture Classifier</h1>
@@ -106,13 +105,16 @@ export const Posture: React.FC = () => {
             </div>
           </div>
         </div>
-      </motion.div>
+      </motion.header>
 
-      <main className="yoga-container">
-        <div className="row g-4">
+      <div className="yoga-container">
+        <div className="row g-4 align-items-stretch">
           {/* Upload / Image Feed Column */}
-          <div className="col-12 col-lg-6">
+          <div className="col-12 col-lg-6 d-flex flex-column">
+            <label htmlFor="posture-file-upload" className="visually-hidden">Upload pose photo</label>
             <input
+              id="posture-file-upload"
+              name="poseImage"
               type="file"
               ref={inputRef}
               accept="image/*"
@@ -124,7 +126,9 @@ export const Posture: React.FC = () => {
 
             {!filePreview ? (
               <div
-                className={`posture-dropzone ${dragOver ? "dz-over" : ""}`}
+                role="button"
+                tabIndex={0}
+                className={`posture-dropzone flex-grow-1 ${dragOver ? "dz-over" : ""}`}
                 onDragOver={(e) => {
                   e.preventDefault();
                   setDragOver(true);
@@ -136,33 +140,51 @@ export const Posture: React.FC = () => {
                   if (e.dataTransfer.files?.[0]) processFile(e.dataTransfer.files[0]);
                 }}
                 onClick={() => inputRef.current?.click()}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    inputRef.current?.click();
+                  }
+                }}
               >
                 <div>
                   <MdCloudUpload size={48} style={{ color: "var(--brand-primary)" }} className="mb-2" />
                   <h5 className="fw-bold mb-1 fs-6">Drag & Drop Your Pose Photo</h5>
-                  <p className="text-muted small mb-3">or click to browse from device</p>
-                  <span className="btn btn-primary btn-sm">Select Image</span>
+                  <p className="text-muted small mb-3">or select a JPEG, PNG, or WebP frame from your device</p>
+                  <button
+                    type="button"
+                    className="btn btn-primary btn-sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      inputRef.current?.click();
+                    }}
+                  >
+                    Select Image
+                  </button>
                 </div>
               </div>
             ) : (
-              <div className="card overflow-hidden">
-                <div className="position-relative" style={{ minHeight: 280, backgroundColor: "var(--bg-secondary)" }}>
+              <div className="card overflow-hidden flex-grow-1 d-flex flex-column">
+                <div className="position-relative flex-grow-1 d-flex align-items-center justify-content-center" style={{ minHeight: 260, backgroundColor: "var(--bg-secondary)" }}>
                   <img
                     src={annotatedImage || filePreview}
                     alt="Pose capture"
                     className="w-100 object-fit-contain"
-                    style={{ maxHeight: 420 }}
+                    style={{ maxHeight: 380 }}
                   />
                   {sending && (
-                    <div className="position-absolute inset-0 d-flex flex-column align-items-center justify-content-center bg-dark bg-opacity-75 text-white" style={{ top: 0, left: 0, right: 0, bottom: 0 }}>
+                    <div
+                      className="position-absolute d-flex flex-column align-items-center justify-content-center bg-dark bg-opacity-75 text-white"
+                      style={{ inset: 0 }}
+                    >
                       <div className="spinner-border text-light mb-2" role="status" />
                       <div className="small fw-bold">Analyzing joint kinematics with CNN...</div>
                     </div>
                   )}
                 </div>
                 <div className="p-3 d-flex justify-content-between align-items-center border-top">
-                  <span className="small text-muted">Input Resolution Processed (224×224)</span>
-                  <button className="btn btn-secondary btn-sm" onClick={resetAll}>
+                  <span className="small text-muted">Input Resolution Processed (224x224)</span>
+                  <button type="button" className="btn btn-secondary btn-sm" onClick={resetAll}>
                     <MdRefresh size={16} /> Upload Another
                   </button>
                 </div>
@@ -170,7 +192,7 @@ export const Posture: React.FC = () => {
             )}
 
             {error && (
-              <div className="alert alert-danger mt-3 py-2 px-3 small rounded-3 d-flex align-items-center gap-2">
+              <div className="alert alert-danger mt-3 py-2 px-3 small rounded-3 d-flex align-items-center gap-2 mb-0">
                 <MdErrorOutline size={18} /> {error}
               </div>
             )}
@@ -178,14 +200,17 @@ export const Posture: React.FC = () => {
 
           {/* Results Analysis Column */}
           <div className="col-12 col-lg-6">
-            <div className="posture-result-card h-100">
+            <div className="posture-result-card h-100 d-flex flex-column justify-content-center">
               <h4 className="fw-bold fs-5 mb-3 d-flex align-items-center gap-2">
                 <MdBarChart style={{ color: "var(--brand-accent)" }} /> Classification Diagnostics
               </h4>
 
               {prediction ? (
                 <div>
-                  <div className="p-3 rounded-3 mb-4" style={{ backgroundColor: "var(--brand-primary-subtle)", border: "1px solid rgba(255, 45, 111, 0.2)" }}>
+                  <div
+                    className="p-3 rounded-3 mb-4"
+                    style={{ backgroundColor: "var(--brand-primary-subtle)", border: "1px solid rgba(255, 45, 111, 0.2)" }}
+                  >
                     <div className="small text-uppercase fw-bold" style={{ color: "var(--brand-primary)" }}>
                       Top Detected Asana
                     </div>
@@ -206,12 +231,12 @@ export const Posture: React.FC = () => {
                           <span className="fw-bold">{(item.score * 100).toFixed(1)}%</span>
                         </div>
                         <div className="probability-bar-track">
-                          <div
+                          <motion.div
                             className="probability-bar-fill"
-                            style={{
-                              width: `${Math.min(100, Math.max(3, item.score * 100))}%`,
-                              opacity: idx === 0 ? 1 : 0.65,
-                            }}
+                            initial={{ width: 0 }}
+                            animate={{ width: `${Math.min(100, Math.max(3, item.score * 100))}%` }}
+                            transition={{ duration: 0.45, delay: idx * 0.06 }}
+                            style={{ opacity: idx === 0 ? 1 : 0.65 }}
                           />
                         </div>
                       </div>
@@ -219,17 +244,17 @@ export const Posture: React.FC = () => {
                   </div>
                 </div>
               ) : (
-                <div className="py-5 posture-empty-state">
-                  <MdAutoAwesome size={48} className="mb-2 posture-empty-icon" />
+                <div className="py-4 posture-empty-state">
+                  <MdAutoAwesome size={44} className="mb-2 posture-empty-icon" />
                   <p className="small m-0 posture-empty-text">
-                    Upload a yoga pose photo to view real-time CNN predictions and probability rankings.
+                    Upload a yoga pose photo to view real-time CNN predictions and Top-5 probability rankings.
                   </p>
                 </div>
               )}
             </div>
           </div>
         </div>
-      </main>
+      </div>
     </div>
   );
 };

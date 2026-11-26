@@ -6,8 +6,7 @@ import Top from "../inc/Top";
 import Footer from "../inc/Footer";
 import { MdArrowBack, MdAdd, MdSave } from "react-icons/md";
 import { RiMapPin2Line } from "react-icons/ri";
-
-const API = "http://localhost:2000";
+import { adminFetch } from "../utils/api";
 
 export const Addretreat: React.FC = () => {
   const nav = useNavigate();
@@ -40,7 +39,7 @@ export const Addretreat: React.FC = () => {
     fd.append("rcost", form.rcost);
 
     try {
-      const r = await fetch(`${API}/retreat/add`, { method: "POST", body: fd });
+      const r = await adminFetch("/retreat/add", { method: "POST", body: fd });
       if (r.ok) {
         setMsg({ type: "success", text: "Retreat scheduled successfully!" });
         setForm({ rname: "", rdate: "", rlocation: "", ractivities: "", rcost: "" });

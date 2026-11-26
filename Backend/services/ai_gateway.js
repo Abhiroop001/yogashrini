@@ -100,11 +100,12 @@ class AIGateway {
    * Internal Groq API Client
    */
   async _callGroq(messages, model, temperature, maxTokens) {
+    const cappedTokens = Math.min(Math.max(128, Number(maxTokens) || 850), 920);
     const payload = JSON.stringify({
       model: model,
       messages: messages,
       temperature: temperature,
-      max_tokens: maxTokens
+      max_tokens: cappedTokens
     });
 
     const resp = await fetch("https://api.groq.com/openai/v1/chat/completions", {
@@ -113,7 +114,8 @@ class AIGateway {
         "Authorization": `Bearer ${this.groqKey}`,
         "Content-Type": "application/json"
       },
-      body: payload
+      body: payload,
+      signal: AbortSignal.timeout(12000)
     });
 
     if (!resp.ok) {
@@ -142,7 +144,8 @@ class AIGateway {
       body: JSON.stringify({
         contents: contents,
         generationConfig: { temperature: temperature }
-      })
+      }),
+      signal: AbortSignal.timeout(12000)
     });
 
     if (!resp.ok) {
@@ -170,7 +173,8 @@ class AIGateway {
         messages: messages,
         temperature: temperature,
         max_tokens: maxTokens
-      })
+      }),
+      signal: AbortSignal.timeout(12000)
     });
 
     if (!resp.ok) {

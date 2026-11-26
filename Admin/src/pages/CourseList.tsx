@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import Sidebar from "../inc/Sidebar";
 import Top from "../inc/Top";
 import Footer from "../inc/Footer";
+import { adminFetch, API_BASE as API } from "../utils/api";
 import {
   MdAdd,
   MdEdit,
@@ -16,7 +17,6 @@ import {
 } from "react-icons/md";
 import { RiCoinsLine } from "react-icons/ri";
 
-const API = "http://localhost:2000";
 
 interface CourseItem {
   _id: string;
@@ -36,7 +36,7 @@ export const CourseList: React.FC = () => {
   const [msg, setMsg] = useState<{ type: string; text: string } | null>(null);
 
   const loadCourses = () => {
-    fetch(`${API}/course?all=true`)
+    adminFetch("/course?all=true")
       .then((r) => r.json())
       .then((d) => setCourses(d.courses || []))
       .catch(() => setMsg({ type: "danger", text: "Failed to load courses from API gateway" }));
@@ -49,7 +49,7 @@ export const CourseList: React.FC = () => {
   const togglePublish = async (course: CourseItem) => {
     const fd = new FormData();
     fd.append("isPublished", String(!course.isPublished));
-    const r = await fetch(`${API}/course/${course._id}`, { method: "PUT", body: fd });
+    const r = await adminFetch(`/course/${course._id}`, { method: "PUT", body: fd });
     if (r.ok) {
       setMsg({
         type: "success",
@@ -62,7 +62,7 @@ export const CourseList: React.FC = () => {
 
   const deleteCourse = async (id: string) => {
     if (!window.confirm("Delete this course and all attached syllabus modules?")) return;
-    const r = await fetch(`${API}/course/${id}`, { method: "DELETE" });
+    const r = await adminFetch(`/course/${id}`, { method: "DELETE" });
     if (r.ok) {
       setMsg({ type: "success", text: "Course curriculum deleted" });
       loadCourses();
@@ -116,29 +116,13 @@ export const CourseList: React.FC = () => {
               <div className="ys-card-title">
                 <MdSchool /> Registered Curriculum
               </div>
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 8,
-                  background: "#f4f5fa",
-                  borderRadius: 8,
-                  padding: "8px 14px",
-                  border: "1px solid #e5e7eb",
-                }}
-              >
-                <MdSearch style={{ color: "#9ca3af" }} />
+              <div className="admin-search-box">
+                <MdSearch style={{ color: "var(--text-muted)" }} />
                 <input
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   placeholder="Filter curriculum..."
-                  style={{
-                    border: "none",
-                    background: "transparent",
-                    outline: "none",
-                    fontSize: 13,
-                    width: 160,
-                  }}
+                  style={{ width: 160 }}
                 />
               </div>
             </div>

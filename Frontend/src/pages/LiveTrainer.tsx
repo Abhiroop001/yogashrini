@@ -6,6 +6,7 @@ import React, { useEffect, useRef, useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import "./LiveTrainer.css";
 import { LimbStatus, Landmark } from "../types";
+import { loadMediaPipeScripts, createGpuPoseLandmarker, PoseQuality } from "../utils/api";
 
 import { GiMeditation } from "react-icons/gi";
 import {
@@ -13,6 +14,7 @@ import {
   MdVideocamOff,
   MdVolumeUp,
   MdVolumeOff,
+  MdRecordVoiceOver,
   MdFlipCameraAndroid,
   MdBolt,
   MdCheckCircle,
@@ -22,7 +24,8 @@ import {
   MdTimer,
   MdPhotoSizeSelectActual,
   MdFullscreen,
-  MdFullscreenExit
+  MdFullscreenExit,
+  MdSpeed
 } from "react-icons/md";
 
 const BACKEND_URL = "http://localhost:5000";
@@ -94,36 +97,211 @@ const LiveTrainer: React.FC = () => {
   const [bestStreak, setBestStreak] = useState<number>(0);
   const holdTimerRef = useRef<any>(null);
 
-  // GPU & System status
-  const [gpuInfo, setGpuInfo] = useState<{ loaded: boolean; name: string }>({
+  // GPU & System status + Real-time FPS / latency telemetry refs
+  const [gpuInfo, setGpuInfo] = useState<{
+    loaded: boolean;
+    name: string;
+    provider?: string;
+    vramFreeMb?: number | null;
+  }>({
     loaded: true,
     name: "NVIDIA GeForce RTX 3050"
   });
+  const [gpuConfidence, setGpuConfidence] = useState<number | null>(null);
+  const [renderFps, setRenderFps] = useState<number>(0);
+  const [poseLatencyMs, setPoseLatencyMs] = useState<number>(0);
+  const [gpuLatencyMs, setGpuLatencyMs] = useState<number | null>(null);
+  const [poseDelegate, setPoseDelegate] = useState<string>("WebGL GPU");
+  const [poseQuality, setPoseQuality] = useState<PoseQuality>("lite");
+  const poseQualityRef = useRef<PoseQuality>("lite");
+  const lastAnalyzeRef = useRef<number>(0);
+  const snapCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const lastPoseExecTsRef = useRef<number>(0);
+  const lastPoseDurationRef = useRef<number>(0);
+  const gpuBusyRef = useRef<boolean>(false);
+  const tasksLandmarkerRef = useRef<any>(null);
+  const renderRafRef = useRef<number | null>(null);
+  const rawLandmarksRef = useRef<Landmark[] | null>(null);
+  const smoothedLandmarksRef = useRef<Landmark[] | null>(null);
+  const lastVideoTimeRef = useRef<number>(-1);
+  const poseBusyRef = useRef<boolean>(false);
+  const isCameraActiveRef = useRef<boolean>(false);
+  const uiCommitRef = useRef<number>(0);
+  const lastUiFlagsRef = useRef<{ person: boolean; full: boolean; perfect: boolean }>({
+    person: false,
+    full: false,
+    perfect: false
+  });
+  const fpsTrackerRef = useRef<{ frames: number; lastTs: number; poseMsAcc: number; poseSamples: number }>({
+    frames: 0,
+    lastTs: typeof performance !== "undefined" ? performance.now() : 0,
+    poseMsAcc: 0,
+    poseSamples: 0
+  });
+  const drawStateRef = useRef<{
+    primaryColor: string;
+    jointColor: string;
+    isCelebration: boolean;
+    limbMap: LimbStatus | Record<string, string>;
+    isOutOfBounds: boolean;
+  }>({
+    primaryColor: "#FF2D6F",
+    jointColor: "#FFFFFF",
+    isCelebration: false,
+    limbMap: {},
+    isOutOfBounds: false
+  });
 
-  // Speech throttle
+  // Speech throttle, voice cache & Chromium queue-unstick refs
   const lastSpokenRef = useRef<number>(0);
   const lastSpokenTextRef = useRef<string>("");
+  const speechTimerRef = useRef<number | null>(null);
+  const activeUtteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
+  const voiceListRef = useRef<SpeechSynthesisVoice[]>([]);
+  const [voiceReady, setVoiceReady] = useState<boolean>(
+    () => typeof window !== "undefined" && "speechSynthesis" in window
+  );
+  const [voiceStatus, setVoiceStatus] = useState<string>("Standby");
 
-  const speakFeedback = useCallback(
-    (text: string) => {
-      if (isAudioMuted || !window.speechSynthesis) return;
-      const now = Date.now();
-      if (now - lastSpokenRef.current < 4500 && text === lastSpokenTextRef.current) return;
-      if (now - lastSpokenRef.current < 2500) return;
+  useEffect(() => {
+    if (typeof window === "undefined" || !("speechSynthesis" in window)) {
+      setVoiceReady(false);
+      setVoiceStatus("Unsupported");
+      return;
+    }
 
+    const loadVoices = () => {
+      const list = window.speechSynthesis.getVoices();
+      if (list && list.length > 0) {
+        voiceListRef.current = list;
+        setVoiceReady(true);
+        if (voiceStatus === "Unsupported") setVoiceStatus("Ready");
+      }
+    };
+
+    loadVoices();
+    window.speechSynthesis.addEventListener?.("voiceschanged", loadVoices);
+    return () => {
+      window.speechSynthesis.removeEventListener?.("voiceschanged", loadVoices);
+      if (speechTimerRef.current) window.clearTimeout(speechTimerRef.current);
       try {
         window.speechSynthesis.cancel();
-        const utterance = new SpeechSynthesisUtterance(text);
-        utterance.rate = 1.05;
-        utterance.pitch = 1.1;
-        window.speechSynthesis.speak(utterance);
-        lastSpokenRef.current = now;
-        lastSpokenTextRef.current = text;
       } catch {
         // Ignored
       }
+    };
+  }, []);
+
+  const pickPreferredVoice = (): SpeechSynthesisVoice | null => {
+    const list = voiceListRef.current.length
+      ? voiceListRef.current
+      : window.speechSynthesis?.getVoices?.() || [];
+    if (!list.length) return null;
+    return (
+      list.find((v) => v.lang?.toLowerCase().startsWith("en") && /natural|google|aria|zira|david|samantha/i.test(v.name)) ||
+      list.find((v) => v.lang?.toLowerCase().startsWith("en-")) ||
+      list.find((v) => v.default) ||
+      list[0]
+    );
+  };
+
+  const speakFeedback = useCallback(
+    (text: string, options: { immediate?: boolean; force?: boolean } = {}) => {
+      if (!options.force && isAudioMuted) return;
+      if (typeof window === "undefined" || !("speechSynthesis" in window)) {
+        playChime(523.25);
+        setVoiceStatus("Chime Only");
+        return;
+      }
+
+      const cleanText = String(text || "").replace(/^ALERT:\s*/i, "Alert: ").trim();
+      if (!cleanText) return;
+
+      const now = Date.now();
+      if (!options.force) {
+        if (now - lastSpokenRef.current < 4800 && cleanText === lastSpokenTextRef.current) return;
+        if (now - lastSpokenRef.current < 2800) return;
+      }
+
+      const dispatchSpeech = () => {
+        try {
+          // Ensure Chrome speechSynthesis engine is not wedged in a paused state
+          if (window.speechSynthesis.paused) {
+            window.speechSynthesis.resume();
+          }
+
+          const utterance = new SpeechSynthesisUtterance(cleanText);
+          const chosenVoice = pickPreferredVoice();
+          if (chosenVoice) {
+            utterance.voice = chosenVoice;
+            utterance.lang = chosenVoice.lang || "en-US";
+          } else {
+            utterance.lang = "en-US";
+          }
+          utterance.volume = 1.0;
+          utterance.rate = 1.0;
+          utterance.pitch = 1.05;
+
+          // Keep reference alive until finished so GC never cancels mid-sentence
+          activeUtteranceRef.current = utterance;
+          utterance.onstart = () => setVoiceStatus("Speaking");
+          utterance.onend = () => {
+            if (activeUtteranceRef.current === utterance) activeUtteranceRef.current = null;
+            setVoiceStatus("Ready");
+          };
+          utterance.onerror = () => {
+            if (activeUtteranceRef.current === utterance) activeUtteranceRef.current = null;
+            setVoiceStatus("Audio Chime");
+          };
+
+          window.speechSynthesis.speak(utterance);
+          lastSpokenRef.current = Date.now();
+          lastSpokenTextRef.current = cleanText;
+        } catch {
+          setVoiceStatus("Audio Fallback");
+        }
+      };
+
+      if (speechTimerRef.current) {
+        window.clearTimeout(speechTimerRef.current);
+        speechTimerRef.current = null;
+      }
+
+      const needsCancel = window.speechSynthesis.speaking || window.speechSynthesis.pending;
+      if (options.immediate || !needsCancel) {
+        if (needsCancel) {
+          try {
+            window.speechSynthesis.cancel();
+          } catch {
+            // Ignored
+          }
+          speechTimerRef.current = window.setTimeout(dispatchSpeech, 65);
+        } else {
+          dispatchSpeech();
+        }
+      } else {
+        try {
+          window.speechSynthesis.cancel();
+        } catch {
+          // Ignored
+        }
+        // Delay 70ms after cancel() to avoid Chromium SAPI race dropping subsequent speak()
+        speechTimerRef.current = window.setTimeout(dispatchSpeech, 70);
+      }
     },
     [isAudioMuted]
+  );
+
+  // Must run synchronously inside user click handlers so browsers unlock TTS for camera frames
+  const unlockSpeechFromGesture = useCallback(
+    (introPhrase?: string) => {
+      if (isAudioMuted) return;
+      playChime(587.33);
+      if (introPhrase) {
+        speakFeedback(introPhrase, { immediate: true, force: true });
+      }
+    },
+    [isAudioMuted, speakFeedback]
   );
 
   useEffect(() => {
@@ -131,7 +309,12 @@ const LiveTrainer: React.FC = () => {
       .then(res => res.json())
       .then(data => {
         if (data.gpu_available) {
-          setGpuInfo(prev => ({ ...prev, name: data.device_target || "NVIDIA RTX 3050", loaded: true }));
+          setGpuInfo({
+            name: data.device_target || "NVIDIA RTX 3050",
+            provider: data.execution_provider || "RTX 3050 XLA GPU",
+            vramFreeMb: data.vram?.vram_free_mb ?? null,
+            loaded: true
+          });
         }
       })
       .catch(() => {});
@@ -170,22 +353,61 @@ const LiveTrainer: React.FC = () => {
     };
   }, [isPerfect]);
 
-  const processLandmarks = useCallback(
-    (landmarks: any[], canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D) => {
-      const W = canvas.width;
-      const H = canvas.height;
-      ctx.clearRect(0, 0, W, H);
+  const commitUiState = useCallback(
+    (
+      force: boolean,
+      patch: {
+        person: boolean;
+        full: boolean;
+        score: number;
+        perfect: boolean;
+        status: string;
+        corrections: string[];
+        limbs?: LimbStatus;
+      }
+    ) => {
+      const now = performance.now();
+      const prev = lastUiFlagsRef.current;
+      const flagsChanged =
+        prev.person !== patch.person ||
+        prev.full !== patch.full ||
+        prev.perfect !== patch.perfect;
 
+      if (!force && !flagsChanged && now - uiCommitRef.current < 110) {
+        return;
+      }
+      uiCommitRef.current = now;
+      lastUiFlagsRef.current = { person: patch.person, full: patch.full, perfect: patch.perfect };
+
+      setPersonDetected(patch.person);
+      setFullBodyDetected(patch.full);
+      setAlignmentScore(patch.score);
+      setIsPerfect(patch.perfect);
+      setStatusMessage(patch.status);
+      setCorrections(patch.corrections);
+      if (patch.limbs) setLimbStatus(patch.limbs);
+    },
+    []
+  );
+
+  const evaluateFrameMetrics = useCallback(
+    (landmarks: any[] | null | undefined) => {
       if (!landmarks || landmarks.length < 33) {
-        setPersonDetected(false);
-        setFullBodyDetected(false);
-        setAlignmentScore(0);
-        setIsPerfect(false);
-        setStatusMessage("Searching for practitioner in frame...");
+        rawLandmarksRef.current = null;
+        smoothedLandmarksRef.current = null;
+        drawStateRef.current.isOutOfBounds = false;
+        commitUiState(false, {
+          person: false,
+          full: false,
+          score: 0,
+          perfect: false,
+          status: "Searching for practitioner in frame...",
+          corrections: ["Position yourself inside the camera frame to start AI posture alignment."]
+        });
         return;
       }
 
-      setPersonDetected(true);
+      rawLandmarksRef.current = landmarks;
 
       const nose = landmarks[0];
       const ls = landmarks[11];
@@ -201,31 +423,36 @@ const LiveTrainer: React.FC = () => {
 
       const criticalJoints = [nose, ls, rs, lh, rh, lk, rk, la, ra];
       const isOutOfBounds = criticalJoints.some(
-        j => !j || (j.visibility && j.visibility < 0.38) || j.y < 0.02 || j.y > 0.98 || j.x < 0.02 || j.x > 0.98
+        j => !j || (j.visibility !== undefined && j.visibility < 0.38) || j.y < 0.02 || j.y > 0.98 || j.x < 0.02 || j.x > 0.98
       );
       const verticalSpan = Math.abs(la.y - nose.y);
 
       if (isOutOfBounds || verticalSpan < 0.4) {
-        setFullBodyDetected(false);
-        setAlignmentScore(0);
-        setIsPerfect(false);
-        setStatusMessage("Full body not in frame! Step back.");
-        setCorrections(["Please step back until your full body (head, arms, and feet) is inside the camera view."]);
-        setLimbStatus({
+        const warnLimbs: LimbStatus = {
           standing_leg: "error",
           bent_leg: "error",
           foot_placement: "error",
           arms: "error",
           torso: "error"
+        };
+        drawStateRef.current = {
+          primaryColor: "#F59E0B",
+          jointColor: "#FCD34D",
+          isCelebration: false,
+          limbMap: warnLimbs,
+          isOutOfBounds: true
+        };
+        commitUiState(false, {
+          person: true,
+          full: false,
+          score: 0,
+          perfect: false,
+          status: "Full body not in frame! Step back.",
+          corrections: ["Please step back until your full body (head, arms, and feet) is inside the camera view."],
+          limbs: warnLimbs
         });
-        ctx.strokeStyle = "#F59E0B";
-        ctx.lineWidth = 4;
-        ctx.strokeRect(15, 15, W - 30, H - 30);
-        drawSkeleton(landmarks, ctx, W, H, "#F59E0B", "#FCD34D");
         return;
       }
-
-      setFullBodyDetected(true);
 
       const leftKneeAngle = calcAngle(lh, lk, la);
       const rightKneeAngle = calcAngle(rh, rk, ra);
@@ -367,27 +594,89 @@ const LiveTrainer: React.FC = () => {
       }
 
       const finalScore = Math.min(100, Math.max(0, score));
-      setAlignmentScore(finalScore);
-      setLimbStatus(newLimbStatus);
-
       const perfect = finalScore >= 85;
-      setIsPerfect(perfect);
+
+      // Non-blocking RTX 3050 GPU verification (reuses single 224x224 canvas, never stacks HTTP requests)
+      const nowMs = performance.now();
+      if (nowMs - lastAnalyzeRef.current > 450 && !gpuBusyRef.current && videoRef.current) {
+        lastAnalyzeRef.current = nowMs;
+        gpuBusyRef.current = true;
+        try {
+          if (!snapCanvasRef.current) {
+            const off = document.createElement("canvas");
+            off.width = 224;
+            off.height = 224;
+            snapCanvasRef.current = off;
+          }
+          const sCtx = snapCanvasRef.current.getContext("2d");
+          if (sCtx) {
+            sCtx.drawImage(videoRef.current, 0, 0, 224, 224);
+            const dataUrl = snapCanvasRef.current.toDataURL("image/jpeg", 0.62);
+            fetch(`${BACKEND_URL}/vrikshasana_analyze`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ landmarks, image: dataUrl }),
+            })
+              .then((r) => (r.ok ? r.json() : null))
+              .then((d) => {
+                if (d) {
+                  if (typeof d.gpu_confidence === "number") setGpuConfidence(d.gpu_confidence);
+                  if (typeof d.gpu_inference_ms === "number") setGpuLatencyMs(d.gpu_inference_ms);
+                }
+              })
+              .catch(() => {})
+              .finally(() => {
+                gpuBusyRef.current = false;
+              });
+          } else {
+            gpuBusyRef.current = false;
+          }
+        } catch {
+          gpuBusyRef.current = false;
+        }
+      }
 
       if (perfect) {
-        setStatusMessage("PERFECT VRIKSHASANA! Hold steady.");
-        setCorrections(["Superb alignment! Breathe deeply and balance."]);
+        drawStateRef.current = {
+          primaryColor: "#00E676",
+          jointColor: "#FFD700",
+          isCelebration: true,
+          limbMap: newLimbStatus,
+          isOutOfBounds: false
+        };
+        commitUiState(false, {
+          person: true,
+          full: true,
+          score: finalScore,
+          perfect: true,
+          status: "PERFECT VRIKSHASANA! Hold steady.",
+          corrections: ["Superb alignment! Breathe deeply and balance."],
+          limbs: newLimbStatus
+        });
         speakFeedback("Perfect posture! Hold steady and breathe.");
-        drawSkeleton(landmarks, ctx, W, H, "#00E676", "#FFD700", true);
       } else {
-        setStatusMessage(finalScore >= 65 ? "Good progress! Minor adjustments needed." : "Adjust limbs to match Vrikshasana reference.");
-        setCorrections(tips.length > 0 ? tips : ["Align arms and legs to match reference posture."]);
+        drawStateRef.current = {
+          primaryColor: finalScore >= 65 ? "#00E676" : "#FF2D6F",
+          jointColor: "#FFFFFF",
+          isCelebration: false,
+          limbMap: newLimbStatus,
+          isOutOfBounds: false
+        };
+        commitUiState(false, {
+          person: true,
+          full: true,
+          score: finalScore,
+          perfect: false,
+          status: finalScore >= 65 ? "Good progress! Minor adjustments needed." : "Adjust limbs to match Vrikshasana reference.",
+          corrections: tips.length > 0 ? tips : ["Align arms and legs to match reference posture."],
+          limbs: newLimbStatus
+        });
         if (tips.length > 0) {
           speakFeedback(tips[0]);
         }
-        drawSkeleton(landmarks, ctx, W, H, finalScore >= 65 ? "#00E676" : "#FF2D6F", "#FFFFFF", false, newLimbStatus);
       }
     },
-    [speakFeedback]
+    [commitUiState, speakFeedback]
   );
 
   const drawSkeleton = (
@@ -398,8 +687,15 @@ const LiveTrainer: React.FC = () => {
     primaryColor: string,
     jointColor: string,
     isCelebration = false,
-    limbMap: any = {}
+    limbMap: any = {},
+    isOutOfBounds = false
   ) => {
+    if (isOutOfBounds) {
+      ctx.strokeStyle = "#F59E0B";
+      ctx.lineWidth = 4;
+      ctx.strokeRect(15, 15, W - 30, H - 30);
+    }
+
     const connections = [
       [11, 13, "arms"],
       [13, 15, "arms"],
@@ -422,45 +718,162 @@ const LiveTrainer: React.FC = () => {
     ctx.lineWidth = isCelebration ? 6 : 4;
     ctx.lineCap = "round";
 
-    connections.forEach(([i, j, limbKey]) => {
+    for (let k = 0; k < connections.length; k++) {
+      const [i, j, limbKey] = connections[k];
       const p1 = landmarks[i as number];
       const p2 = landmarks[j as number];
-      if (!p1 || !p2 || p1.visibility < 0.3 || p2.visibility < 0.3) return;
+      if (!p1 || !p2 || (p1.visibility !== undefined && p1.visibility < 0.3) || (p2.visibility !== undefined && p2.visibility < 0.3)) continue;
 
       let strokeColor = primaryColor;
-      if (limbMap && limbMap[limbKey as string]) {
-        if (limbMap[limbKey as string] === "perfect") strokeColor = "#00E676";
-        else if (limbMap[limbKey as string] === "warning") strokeColor = "#F59E0B";
-        else if (limbMap[limbKey as string] === "error") strokeColor = "#EF4444";
-      }
+      const limbState = limbMap && limbMap[limbKey as string];
+      if (limbState === "perfect") strokeColor = "#00E676";
+      else if (limbState === "warning") strokeColor = "#F59E0B";
+      else if (limbState === "error") strokeColor = "#EF4444";
 
       ctx.strokeStyle = isCelebration ? "#00E676" : strokeColor;
       ctx.beginPath();
       ctx.moveTo(p1.x * W, p1.y * H);
       ctx.lineTo(p2.x * W, p2.y * H);
       ctx.stroke();
-    });
+    }
 
-    landmarks.forEach((lm, idx) => {
-      if (!lm || lm.visibility < 0.35 || idx > 32) return;
-      const x = lm.x * W;
-      const y = lm.y * H;
+    // Fast dual-ring joint glow (avoids expensive per-joint shadowBlur Gaussian CPU blur for 60 FPS)
+    const outerRadius = isCelebration ? 10 : 8;
+    const innerRadius = isCelebration ? 6.5 : 4.5;
+    const haloColor = isCelebration ? "#FFD700" : primaryColor;
+    const coreColor = isCelebration ? "#FFD700" : jointColor;
 
+    ctx.fillStyle = haloColor;
+    ctx.globalAlpha = 0.28;
+    for (let idx = 0; idx < Math.min(33, landmarks.length); idx++) {
+      const lm = landmarks[idx];
+      if (!lm || (lm.visibility !== undefined && lm.visibility < 0.35)) continue;
       ctx.beginPath();
-      ctx.arc(x, y, isCelebration ? 7 : 5, 0, 2 * Math.PI);
-      ctx.fillStyle = isCelebration ? "#FFD700" : jointColor;
-      ctx.shadowColor = isCelebration ? "#FFD700" : primaryColor;
-      ctx.shadowBlur = 10;
+      ctx.arc(lm.x * W, lm.y * H, outerRadius, 0, 2 * Math.PI);
       ctx.fill();
-      ctx.shadowBlur = 0;
-    });
+    }
+
+    ctx.globalAlpha = 1.0;
+    ctx.fillStyle = coreColor;
+    for (let idx = 0; idx < Math.min(33, landmarks.length); idx++) {
+      const lm = landmarks[idx];
+      if (!lm || (lm.visibility !== undefined && lm.visibility < 0.35)) continue;
+      ctx.beginPath();
+      ctx.arc(lm.x * W, lm.y * H, innerRadius, 0, 2 * Math.PI);
+      ctx.fill();
+    }
   };
+
+  const renderAndTrackLoop = useCallback(() => {
+    if (!isCameraActiveRef.current) return;
+
+    const now = performance.now();
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+
+    // 1. Run GPU PoseLandmarker zero-copy directly on <video> WebGL texture with adaptive cadence
+    if (video && video.readyState >= 2 && video.videoWidth > 0) {
+      const videoTime = video.currentTime;
+      const adaptiveCooldownMs = lastPoseDurationRef.current > 18 ? 16 : 0;
+      if (videoTime !== lastVideoTimeRef.current && now - lastPoseExecTsRef.current >= adaptiveCooldownMs) {
+        lastVideoTimeRef.current = videoTime;
+        lastPoseExecTsRef.current = now;
+
+        if (tasksLandmarkerRef.current) {
+          try {
+            const t0 = performance.now();
+            const res = tasksLandmarkerRef.current.detectForVideo(video, t0);
+            const poseDt = performance.now() - t0;
+            lastPoseDurationRef.current = poseDt;
+            fpsTrackerRef.current.poseMsAcc += poseDt;
+            fpsTrackerRef.current.poseSamples += 1;
+            const lms = res?.landmarks?.[0] || null;
+            evaluateFrameMetrics(lms);
+          } catch {
+            // Skip frame errors gracefully
+          }
+        } else if (poseInstanceRef.current && !poseBusyRef.current) {
+          poseBusyRef.current = true;
+          const t0 = performance.now();
+          Promise.resolve(poseInstanceRef.current.send({ image: video }))
+            .then(() => {
+              fpsTrackerRef.current.poseMsAcc += performance.now() - t0;
+              fpsTrackerRef.current.poseSamples += 1;
+            })
+            .catch(() => {})
+            .finally(() => {
+              poseBusyRef.current = false;
+            });
+        }
+      }
+    }
+
+    // 2. Smooth & render skeleton overlay at monitor refresh rate (40-60 FPS)
+    if (canvas) {
+      const ctx = canvas.getContext("2d");
+      if (ctx) {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        const targetLms = rawLandmarksRef.current;
+        if (targetLms && targetLms.length >= 33) {
+          let smoothed = smoothedLandmarksRef.current;
+          if (!smoothed || smoothed.length !== targetLms.length) {
+            smoothed = targetLms.map((p: any) => ({ ...p }));
+          } else {
+            const alpha = 0.58;
+            for (let i = 0; i < targetLms.length; i++) {
+              const t = targetLms[i];
+              const s = smoothed[i];
+              s.x += (t.x - s.x) * alpha;
+              s.y += (t.y - s.y) * alpha;
+              s.z = t.z;
+              s.visibility = t.visibility;
+            }
+          }
+          smoothedLandmarksRef.current = smoothed;
+          const st = drawStateRef.current;
+          drawSkeleton(
+            smoothed,
+            ctx,
+            canvas.width,
+            canvas.height,
+            st.primaryColor,
+            st.jointColor,
+            st.isCelebration,
+            st.limbMap,
+            st.isOutOfBounds
+          );
+        }
+      }
+    }
+
+    // 3. Commit live FPS / pose latency telemetry every 500 ms
+    fpsTrackerRef.current.frames += 1;
+    const elapsed = now - fpsTrackerRef.current.lastTs;
+    if (elapsed >= 500) {
+      const currentFps = Math.round((fpsTrackerRef.current.frames * 1000) / elapsed);
+      const samples = fpsTrackerRef.current.poseSamples;
+      const avgPoseMs = samples > 0 ? Math.round((fpsTrackerRef.current.poseMsAcc / samples) * 10) / 10 : 0;
+      fpsTrackerRef.current = { frames: 0, lastTs: now, poseMsAcc: 0, poseSamples: 0 };
+      setRenderFps(currentFps);
+      if (samples > 0) setPoseLatencyMs(avgPoseMs);
+    }
+
+    renderRafRef.current = window.requestAnimationFrame(renderAndTrackLoop);
+  }, [evaluateFrameMetrics]);
 
   const startCamera = async () => {
     try {
-      setStatusMessage("Starting webcam & loading AI vision model...");
+      // Unlock Web Speech synthesis synchronously inside user tap before async webcam init
+      unlockSpeechFromGesture("Live posture voice coach activated. Step back so your full body is visible.");
+      setStatusMessage("Initializing WebGL GPU Pose Engine & high-FPS webcam...");
+
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: "user" },
+        video: {
+          width: { ideal: 640 },
+          height: { ideal: 480 },
+          frameRate: { ideal: 60, min: 30 },
+          facingMode: "user"
+        },
         audio: false
       });
       streamRef.current = stream;
@@ -470,60 +883,94 @@ const LiveTrainer: React.FC = () => {
         await videoRef.current.play();
       }
 
-      if (window.Pose) {
-        const pose = new window.Pose({
-          locateFile: (file: string) => `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`
-        });
-
-        pose.setOptions({
-          modelComplexity: 1,
-          smoothLandmarks: true,
-          enableSegmentation: false,
-          minDetectionConfidence: 0.5,
-          minTrackingConfidence: 0.5
-        });
-
-        pose.onResults((results: any) => {
-          if (canvasRef.current && results.poseLandmarks) {
-            const ctx = canvasRef.current.getContext("2d");
-            if (ctx) processLandmarks(results.poseLandmarks, canvasRef.current, ctx);
-          } else if (canvasRef.current) {
-            const ctx = canvasRef.current.getContext("2d");
-            if (ctx) ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
-            setPersonDetected(false);
-            setFullBodyDetected(false);
-          }
-        });
-
-        poseInstanceRef.current = pose;
-
-        if (window.Camera && videoRef.current) {
-          const camera = new window.Camera(videoRef.current, {
-            onFrame: async () => {
-              if (videoRef.current && poseInstanceRef.current) {
-                await poseInstanceRef.current.send({ image: videoRef.current });
-              }
-            },
-            width: 640,
-            height: 480
+      let gpuReady = false;
+      try {
+        const handle = await createGpuPoseLandmarker(poseQualityRef.current);
+        tasksLandmarkerRef.current = handle.landmarker;
+        setPoseDelegate(`MediaPipe ${handle.delegate} (${handle.quality === "lite" ? "60 FPS Lite" : "Full"})`);
+        gpuReady = true;
+      } catch {
+        // Fallback cleanly to legacy CDN MediaPipe Pose if Tasks Vision cannot initialize
+        await loadMediaPipeScripts();
+        if (window.Pose) {
+          const pose = new window.Pose({
+            locateFile: (file: string) => `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`
           });
-          camera.start();
-          cameraInstanceRef.current = camera;
+          pose.setOptions({
+            modelComplexity: poseQualityRef.current === "lite" ? 0 : 1,
+            smoothLandmarks: false,
+            enableSegmentation: false,
+            minDetectionConfidence: 0.45,
+            minTrackingConfidence: 0.45
+          });
+          pose.onResults((results: any) => {
+            evaluateFrameMetrics(results?.poseLandmarks || null);
+          });
+          poseInstanceRef.current = pose;
+          setPoseDelegate("MediaPipe Fallback");
         }
       }
 
+      isCameraActiveRef.current = true;
+      lastVideoTimeRef.current = -1;
+      fpsTrackerRef.current = { frames: 0, lastTs: performance.now(), poseMsAcc: 0, poseSamples: 0 };
+      if (renderRafRef.current) window.cancelAnimationFrame(renderRafRef.current);
+      renderRafRef.current = window.requestAnimationFrame(renderAndTrackLoop);
+
       setIsCameraOn(true);
-      setStatusMessage("Camera live! Step back so your entire body is visible.");
+      setStatusMessage(
+        gpuReady
+          ? "60 FPS GPU Camera live! Step back so your entire body is visible."
+          : "Camera live! Step back so your entire body is visible."
+      );
     } catch (err: any) {
       console.error("Camera access error:", err);
       setStatusMessage(`Unable to open camera: ${err.message}. Please check permissions.`);
     }
   };
 
+  const handleTogglePoseQuality = async () => {
+    const next: PoseQuality = poseQuality === "lite" ? "full" : "lite";
+    poseQualityRef.current = next;
+    setPoseQuality(next);
+    if (isCameraActiveRef.current && tasksLandmarkerRef.current) {
+      try {
+        const prev = tasksLandmarkerRef.current;
+        const handle = await createGpuPoseLandmarker(next);
+        tasksLandmarkerRef.current = handle.landmarker;
+        prev?.close?.();
+        setPoseDelegate(`MediaPipe ${handle.delegate} (${next === "lite" ? "60 FPS Lite" : "Full"})`);
+      } catch {
+        // Keep current active instance if swap fails
+      }
+    }
+  };
+
   const stopCamera = () => {
+    isCameraActiveRef.current = false;
+    if (renderRafRef.current) {
+      window.cancelAnimationFrame(renderRafRef.current);
+      renderRafRef.current = null;
+    }
     if (cameraInstanceRef.current) {
       cameraInstanceRef.current.stop();
       cameraInstanceRef.current = null;
+    }
+    if (tasksLandmarkerRef.current) {
+      try {
+        tasksLandmarkerRef.current.close?.();
+      } catch {
+        // Ignored
+      }
+      tasksLandmarkerRef.current = null;
+    }
+    if (poseInstanceRef.current) {
+      try {
+        poseInstanceRef.current.close?.();
+      } catch {
+        // Ignored
+      }
+      poseInstanceRef.current = null;
     }
     if (streamRef.current) {
       streamRef.current.getTracks().forEach(t => t.stop());
@@ -532,10 +979,25 @@ const LiveTrainer: React.FC = () => {
     if (videoRef.current) {
       videoRef.current.srcObject = null;
     }
+    rawLandmarksRef.current = null;
+    smoothedLandmarksRef.current = null;
     if (canvasRef.current) {
       const ctx = canvasRef.current.getContext("2d");
       if (ctx) ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
     }
+    if (speechTimerRef.current) {
+      window.clearTimeout(speechTimerRef.current);
+      speechTimerRef.current = null;
+    }
+    try {
+      window.speechSynthesis?.cancel();
+    } catch {
+      // Ignored
+    }
+    setRenderFps(0);
+    setPoseLatencyMs(0);
+    setGpuLatencyMs(null);
+    setVoiceStatus("Standby");
     setIsCameraOn(false);
     setPersonDetected(false);
     setFullBodyDetected(false);
@@ -551,7 +1013,7 @@ const LiveTrainer: React.FC = () => {
   }, []);
 
   return (
-    <motion.main
+    <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.3 }}
@@ -566,13 +1028,17 @@ const LiveTrainer: React.FC = () => {
                 <h1>Real-Time AI Vrikshasana Coach</h1>
                 <div className="lt-badges">
                   <span className="lt-badge gpu">
-                    <MdBolt size={14} /> GPU Accelerated ({gpuInfo.name})
+                    <MdBolt size={14} /> {gpuInfo.provider || "GPU Accelerated"} ({gpuInfo.name}
+                    {gpuInfo.vramFreeMb ? ` • ${gpuInfo.vramFreeMb} MB Free` : ""})
+                  </span>
+                  <span className="lt-badge fps-badge">
+                    <MdSpeed size={14} /> {isCameraOn ? `${renderFps} FPS • ${poseDelegate}` : `Engine: ${poseDelegate}`}
                   </span>
                   <span className="lt-badge pose">
                     <GiMeditation size={14} /> Pose: Vrikshasana (Tree Pose)
                   </span>
                   <span className="lt-badge dataset">
-                    <MdPhotoSizeSelectActual size={14} /> 8,000 Verified Samples
+                    <MdRecordVoiceOver size={14} /> Voice: {isAudioMuted ? "Muted" : voiceReady ? voiceStatus : "Chime Only"}
                   </span>
                 </div>
               </div>
@@ -610,10 +1076,46 @@ const LiveTrainer: React.FC = () => {
 
               <button
                 className={`lt-btn secondary ${!isAudioMuted ? "active" : ""}`}
-                onClick={() => setIsAudioMuted(!isAudioMuted)}
+                onClick={() => {
+                  const nextMuted = !isAudioMuted;
+                  setIsAudioMuted(nextMuted);
+                  if (nextMuted) {
+                    if (speechTimerRef.current) window.clearTimeout(speechTimerRef.current);
+                    window.speechSynthesis?.cancel();
+                    setVoiceStatus("Muted");
+                  } else {
+                    playChime(587.33);
+                    speakFeedback("Voice guidance activated.", { immediate: true, force: true });
+                  }
+                }}
                 title="Voice Guidance Toggle"
               >
                 {isAudioMuted ? <MdVolumeOff size={18} /> : <MdVolumeUp size={18} />} Voice
+              </button>
+
+              <button
+                type="button"
+                className="lt-btn secondary"
+                onClick={() => {
+                  if (isAudioMuted) setIsAudioMuted(false);
+                  playChime(659.25);
+                  speakFeedback(
+                    "Tree Pose voice coach check. Keep your standing leg straight and place your foot on your inner thigh.",
+                    { immediate: true, force: true }
+                  );
+                }}
+                title="Test audio voice coaching"
+              >
+                <MdRecordVoiceOver size={18} /> Test Voice
+              </button>
+
+              <button
+                type="button"
+                className={`lt-btn secondary ${poseQuality === "lite" ? "active" : ""}`}
+                onClick={handleTogglePoseQuality}
+                title="Switch between Turbo 60 FPS GPU tracking and Full precision landmarks"
+              >
+                <MdSpeed size={18} /> {poseQuality === "lite" ? "60 FPS Turbo" : "High Accuracy"}
               </button>
 
               <button
@@ -655,13 +1157,13 @@ const LiveTrainer: React.FC = () => {
 
               {!isCameraOn && (
                 <div className="lt-video-placeholder">
-                  <GiMeditation size={84} style={{ color: "#334155" }} />
+                  <GiMeditation size={60} style={{ color: "#64748b" }} />
                   <h3>Live Video Coaching Inactive</h3>
                   <p>
                     Turn on your camera to activate full-figure skeleton detection and real-time
                     posture alignment against the 8,000 verified Vrikshasana image dataset.
                   </p>
-                  <button className="lt-btn primary" onClick={startCamera}>
+                  <button type="button" className="lt-btn primary" onClick={startCamera}>
                     <MdVideocam size={20} /> Turn On Camera
                   </button>
                 </div>
@@ -681,9 +1183,16 @@ const LiveTrainer: React.FC = () => {
                     </span>
                   </div>
 
-                  <span className={`lt-pill ${alignmentScore >= 85 ? "green" : alignmentScore >= 60 ? "amber" : "gray"}`}>
-                    Alignment: {alignmentScore}%
-                  </span>
+                  <div className="lt-stage-overlay-right">
+                    <span className="lt-pill fps">
+                      <MdSpeed size={14} /> {renderFps} FPS
+                      {poseLatencyMs > 0 ? ` | Pose ${poseLatencyMs} ms` : ""}
+                      {gpuLatencyMs !== null ? ` | GPU ${gpuLatencyMs} ms` : ""}
+                    </span>
+                    <span className={`lt-pill ${alignmentScore >= 85 ? "green" : alignmentScore >= 60 ? "amber" : "gray"}`}>
+                      Alignment: {alignmentScore}%
+                    </span>
+                  </div>
                 </div>
               )}
 
@@ -795,9 +1304,17 @@ const LiveTrainer: React.FC = () => {
                   <span className="lt-limb-name">Spine & Torso</span>
                   <span className="lt-limb-state">{limbStatus.torso}</span>
                 </div>
-                <div className={`lt-limb-box ${isPerfect ? "perfect" : "warning"}`}>
+                <div className={`lt-limb-box ${isPerfect ? "perfect" : gpuConfidence && gpuConfidence >= 65 ? "perfect" : "warning"}`}>
                   <span className="lt-limb-name">GPU Confidence</span>
-                  <span className="lt-limb-state">{isPerfect ? "99.8%" : "Verifying"}</span>
+                  <span className="lt-limb-state">
+                    {!isCameraOn
+                      ? "Standby"
+                      : gpuConfidence !== null
+                      ? `${gpuConfidence}%`
+                      : isPerfect
+                      ? "99.8%"
+                      : "Verifying"}
+                  </span>
                 </div>
               </div>
             </div>
@@ -810,23 +1327,29 @@ const LiveTrainer: React.FC = () => {
               </div>
 
               <div className="lt-corrections-list">
-                {corrections.map((tip, i) => (
-                  <motion.div
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    key={i}
-                    className={`lt-correction-item ${isPerfect ? "perfect" : tip.includes("ALERT") ? "error" : "warning"}`}
-                  >
-                    {isPerfect ? (
-                      <MdCheckCircle size={18} style={{ color: "#10B981", flexShrink: 0 }} />
-                    ) : tip.includes("ALERT") ? (
-                      <MdError size={18} style={{ color: "#EF4444", flexShrink: 0 }} />
-                    ) : (
-                      <MdWarning size={18} style={{ color: "#F59E0B", flexShrink: 0 }} />
-                    )}
-                    <span>{tip}</span>
-                  </motion.div>
-                ))}
+                {corrections.length === 0 ? (
+                  <div className="text-muted small py-2">
+                    Start live coaching and position your full body inside the frame to receive real-time biomechanical cues.
+                  </div>
+                ) : (
+                  corrections.map((tip, i) => (
+                    <motion.div
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      key={i}
+                      className={`lt-correction-item ${isPerfect ? "perfect" : tip.includes("ALERT") ? "error" : "warning"}`}
+                    >
+                      {isPerfect ? (
+                        <MdCheckCircle size={18} style={{ color: "#10B981", flexShrink: 0 }} />
+                      ) : tip.includes("ALERT") ? (
+                        <MdError size={18} style={{ color: "#EF4444", flexShrink: 0 }} />
+                      ) : (
+                        <MdWarning size={18} style={{ color: "#F59E0B", flexShrink: 0 }} />
+                      )}
+                      <span>{tip}</span>
+                    </motion.div>
+                  ))
+                )}
               </div>
             </div>
 
@@ -861,7 +1384,7 @@ const LiveTrainer: React.FC = () => {
           </div>
         )}
       </div>
-    </motion.main>
+    </motion.div>
   );
 };
 

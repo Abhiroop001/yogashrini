@@ -1,6 +1,6 @@
-// src/pages/CourseDetail.tsx
+// Frontend/src/pages/CourseDetail.tsx
 import React, { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   MdPlayCircle,
@@ -12,13 +12,13 @@ import {
   MdAccessTime,
 } from "react-icons/md";
 import { RiAwardLine, RiCoinsLine, RiShieldCheckLine } from "react-icons/ri";
-
-const API = "http://localhost:2000";
+import { useAuth } from "../AuthContext";
+import { API_BASE, authFetch, loadRazorpayScript } from "../utils/api";
 
 interface VideoItem {
   _id: string;
   title: string;
-  url: string;
+  url?: string;
   duration?: number;
 }
 
@@ -51,6 +51,8 @@ interface CourseData {
 export const CourseDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const nav = useNavigate();
+  const location = useLocation();
+  const { user, token, isAuthenticated } = useAuth();
 
   const [course, setCourse] = useState<CourseData | null>(null);
   const [weeks, setWeeks] = useState<WeekItem[]>([]);
@@ -60,46 +62,71 @@ export const CourseDetail: React.FC = () => {
   const [payLoading, setPayLoading] = useState<boolean>(false);
   const [msg, setMsg] = useState<{ type: string; text: string } | null>(null);
 
-  const userId = localStorage.getItem("uid") || "";
-
   useEffect(() => {
+    let active = true;
+    const enrollCheck = isAuthenticated && token
+      ? authFetch(`/payment/enrollment/check/${id}`).then((r) => (r.ok ? r.json() : { enrolled: false }))
+      : Promise.resolve({ enrolled: false });
+
     Promise.all([
-      fetch(`${API}/course/${id}`).then((r) => r.json()),
-      fetch(`${API}/course/${id}/weeks`).then((r) => r.json()),
-      userId
-        ? fetch(`${API}/payment/enrollment/check/${id}?userId=${userId}`).then((r) => r.json())
-        : Promise.resolve({ enrolled: false }),
+      authFetch(`/course/${id}`).then((r) => r.json()),
+      authFetch(`/course/${id}/weeks`).then((r) => r.json()),
+      enrollCheck,
     ])
       .then(([cData, wData, eData]) => {
+        if (!active) return;
         setCourse(cData.course || null);
         setWeeks(wData.weeks || []);
         setEnrolled(Boolean(eData.enrolled));
         setEnrollment(eData.enrollment || null);
         setLoading(false);
       })
-      .catch(() => setLoading(false));
-  }, [id, userId]);
+      .catch(() => {
+        if (active) setLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [id, isAuthenticated, token]);
 
   const handleEnrollOrPay = async () => {
-    if (!userId) {
-      return nav("/login");
+    if (!isAuthenticated || !token) {
+      return nav("/login", { state: { from: location.pathname } });
     }
 
     setPayLoading(true);
     setMsg(null);
 
     try {
-      const r = await fetch(`${API}/payment/create-order`, {
+      const r = await authFetch("/payment/create-order", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ courseId: id, userId }),
+        body: JSON.stringify({ courseId: id }),
       });
       const data = await r.json();
 
+      if (!r.ok) {
+        setMsg({ type: "danger", text: data.error || "Unable to initiate enrollment." });
+        setPayLoading(false);
+        return;
+      }
+
       if (data.free) {
         setEnrolled(true);
-        setMsg({ type: "success", text: "Enrolled for free! Enjoy your course." });
-        return nav(`/course/${id}/week/1`);
+        setMsg({ type: "success", text: "Enrolled for free! Your course is now unlocked in My Courses." });
+        setPayLoading(false);
+        const firstReg = weeks.filter((w) => !w.isBonus).sort((a, b) => a.weekNumber - b.weekNumber)[0];
+        if (firstReg) {
+          return nav(`/course/${id}/week/${firstReg.weekNumber}`);
+        }
+        return;
+      }
+
+      const sdkLoaded = await loadRazorpayScript();
+      if (!sdkLoaded || !(window as any).Razorpay) {
+        setMsg({ type: "danger", text: "Failed to load Razorpay Checkout SDK. Check your connection." });
+        setPayLoading(false);
+        return;
       }
 
       const options = {
@@ -114,36 +141,48 @@ export const CourseDetail: React.FC = () => {
           razorpay_payment_id: string;
           razorpay_signature: string;
         }) {
-          const vr = await fetch(`${API}/payment/verify`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              razorpay_order_id: response.razorpay_order_id,
-              razorpay_payment_id: response.razorpay_payment_id,
-              razorpay_signature: response.razorpay_signature,
-              courseId: id,
-              userId,
-            }),
-          });
-          const vdata = await vr.json();
-          if (vr.ok) {
-            setEnrolled(true);
-            setMsg({ type: "success", text: "Payment verified successfully. Welcome to your course." });
-            setTimeout(() => nav(`/course/${id}/week/1`), 1500);
-          } else {
-            setMsg({ type: "danger", text: vdata.error || "Payment verification failed" });
+          try {
+            const vr = await authFetch("/payment/verify", {
+              method: "POST",
+              body: JSON.stringify({
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature,
+                courseId: id,
+              }),
+            });
+            const vdata = await vr.json();
+            if (vr.ok) {
+              setEnrolled(true);
+              setEnrollment(vdata.enrollment || null);
+              setMsg({ type: "success", text: "Payment verified successfully! This course is now saved in My Courses." });
+              const firstReg = weeks.filter((w) => !w.isBonus).sort((a, b) => a.weekNumber - b.weekNumber)[0];
+              if (firstReg) {
+                setTimeout(() => nav(`/course/${id}/week/${firstReg.weekNumber}`), 1200);
+              }
+            } else {
+              setMsg({ type: "danger", text: vdata.error || "Payment verification failed." });
+            }
+          } finally {
+            setPayLoading(false);
           }
         },
-        prefill: { name: localStorage.getItem("uname") || "", email: "" },
+        prefill: { name: user?.name || "", email: user?.email || "" },
         theme: { color: "#FF2D6F" },
         modal: { ondismiss: () => setPayLoading(false) },
       };
 
-      const rz = new window.Razorpay(options);
+      const rz = new (window as any).Razorpay(options);
+      rz.on("payment.failed", (resp: any) => {
+        setMsg({
+          type: "danger",
+          text: resp?.error?.description || "Payment declined by gateway.",
+        });
+        setPayLoading(false);
+      });
       rz.open();
     } catch {
       setMsg({ type: "danger", text: "Failed to initiate payment. Please try again." });
-    } finally {
       setPayLoading(false);
     }
   };
@@ -161,7 +200,7 @@ export const CourseDetail: React.FC = () => {
     return (
       <div className="yoga-container text-center py-5 my-5">
         <h4>Course not found</h4>
-        <button className="btn btn-primary mt-3" onClick={() => nav("/courses")}>
+        <button type="button" className="btn btn-primary mt-3" onClick={() => nav("/courses")}>
           Browse Courses
         </button>
       </div>
@@ -178,24 +217,25 @@ export const CourseDetail: React.FC = () => {
   return (
     <div className="pb-5">
       {/* Hero Header Section */}
-      <div className="ud-hero-section mb-4">
+      <header className="ud-hero-section mb-4">
         <div className="yoga-container">
           <div className="row g-4 align-items-center">
             <div className="col-12 col-lg-7">
               <button
+                type="button"
                 onClick={() => nav("/courses")}
                 className="btn btn-sm btn-secondary mb-3"
               >
                 <MdArrowBack /> All Courses
               </button>
-              <h1 className="fw-bold mb-3 fs-2">{course.title}</h1>
-              <p className="text-secondary mb-4 lead fs-6">{course.description}</p>
-              <div className="d-flex gap-3 flex-wrap small text-secondary">
+              <h1 className="fw-bold mb-2 fs-2">{course.title}</h1>
+              <p className="text-secondary mb-3 lead fs-6">{course.description}</p>
+              <div className="d-flex gap-2 flex-wrap small text-secondary">
                 <span className="badge-pill badge-primary">
                   <MdSchool /> {course.level}
                 </span>
                 <span className="badge-pill badge-emerald">
-                  <MdAccessTime /> {course.totalWeeks || regularWeeks.length} Weeks
+                  <MdAccessTime /> {course.totalWeeks || regularWeeks.length || 1} Weeks
                 </span>
                 <span className="badge-pill badge-accent">
                   <RiAwardLine /> Up to {totalXP} XP
@@ -210,14 +250,18 @@ export const CourseDetail: React.FC = () => {
 
             {/* Enrollment / Purchase Action Box */}
             <div className="col-12 col-lg-5">
-              <div className="card p-4">
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="card p-4"
+              >
                 <div className="d-flex align-items-baseline justify-content-between mb-3">
                   <div>
                     <span className="fs-3 fw-bold" style={{ color: "var(--brand-primary)" }}>
                       {course.price === 0 ? "Free Access" : `₹${course.price}`}
                     </span>
                     {course.price > 0 && (
-                      <span className="text-muted small ms-2">Full Course Access</span>
+                      <span className="text-muted small ms-2">Full Lifetime Access</span>
                     )}
                   </div>
                   {enrolled && (
@@ -234,103 +278,128 @@ export const CourseDetail: React.FC = () => {
                 )}
 
                 {enrolled ? (
-                  <button
-                    className="btn btn-primary w-100 py-3 fw-bold"
-                    onClick={() => nav(`/course/${id}/week/1`)}
-                  >
-                    <MdPlayCircle size={20} /> Continue Learning
-                  </button>
+                  regularWeeks.length > 0 ? (
+                    <button
+                      type="button"
+                      className="btn btn-primary w-100 py-3 fw-bold"
+                      onClick={() => nav(`/course/${id}/week/${regularWeeks[0].weekNumber}`)}
+                    >
+                      <MdPlayCircle size={20} /> Continue Learning
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      className="btn btn-secondary w-100 py-3 fw-bold"
+                      onClick={() => nav("/courses")}
+                    >
+                      <MdCheckCircle size={20} /> Enrolled · Back to My Courses
+                    </button>
+                  )
                 ) : (
                   <button
+                    type="button"
                     className="btn btn-primary w-100 py-3 fw-bold"
                     onClick={handleEnrollOrPay}
                     disabled={payLoading}
                   >
-                    {payLoading ? (
-                      "Processing..."
-                    ) : course.price === 0 ? (
-                      "Enroll for Free"
-                    ) : (
-                      `Enroll Now · ₹${course.price}`
-                    )}
+                    {payLoading
+                      ? "Processing Checkout..."
+                      : !isAuthenticated
+                      ? course.price === 0
+                        ? "Sign In to Enroll Free"
+                        : `Sign In to Enroll · ₹${course.price}`
+                      : course.price === 0
+                      ? "Enroll for Free"
+                      : `Enroll Now · ₹${course.price}`}
                   </button>
                 )}
 
                 <div className="d-flex align-items-center justify-content-center gap-2 mt-3 text-muted small">
-                  <RiShieldCheckLine size={16} /> 30-Day Guided Practice & Certification
+                  <RiShieldCheckLine size={16} /> Guided Practice, XP Tracking & Certification
                 </div>
-              </div>
+              </motion.div>
             </div>
           </div>
         </div>
-      </div>
+      </header>
 
       {/* Course Curriculum Weeks */}
-      <main className="yoga-container">
-        <h3 className="fw-bold mb-4 fs-4">Curriculum & Video Modules</h3>
+      <div className="yoga-container">
+        <h3 className="fw-bold mb-3 fs-4">Curriculum & Video Modules</h3>
 
-        <div className="d-flex flex-column gap-3 mb-5">
-          {regularWeeks.map((week) => {
-            const isDone = completedNums.includes(week.weekNumber);
-            const isLocked = !enrolled;
+        {regularWeeks.length === 0 && bonusWeeks.length === 0 ? (
+          <div className="card text-center p-4">
+            <MdSchool size={36} className="mx-auto mb-2" style={{ color: "var(--brand-primary)" }} />
+            <h5 className="fw-bold mb-1 fs-6">Curriculum Modules Coming Soon</h5>
+            <p className="text-muted small m-0">
+              Faculty instructors are actively uploading weekly video sessions for this cohort.
+            </p>
+          </div>
+        ) : (
+          <div className="d-flex flex-column gap-3 mb-4">
+            {regularWeeks.map((week) => {
+              const isDone = completedNums.includes(week.weekNumber);
+              const isLocked = !enrolled;
 
-            return (
-              <div
-                key={week._id}
-                className="card p-3"
-                style={{
-                  borderLeft: isDone ? "5px solid #10b981" : "5px solid var(--brand-primary)",
-                  cursor: enrolled ? "pointer" : "default",
-                }}
-                onClick={() => enrolled && nav(`/course/${id}/week/${week.weekNumber}`)}
-              >
-                <div className="d-flex align-items-center justify-content-between flex-wrap gap-3">
-                  <div className="d-flex align-items-center gap-3">
-                    <div
-                      className="rounded-circle d-flex align-items-center justify-content-center text-white"
-                      style={{
-                        width: 44,
-                        height: 44,
-                        backgroundColor: isDone ? "#10b981" : isLocked ? "var(--border-prominent)" : "var(--brand-primary)",
-                      }}
-                    >
-                      {isDone ? (
-                        <MdCheckCircle size={22} />
-                      ) : isLocked ? (
-                        <MdLock size={20} />
-                      ) : (
-                        <MdPlayCircle size={22} />
-                      )}
-                    </div>
-                    <div>
-                      <div className="fw-bold d-flex align-items-center gap-2">
-                        <span className="badge-pill badge-primary">
-                          Week {week.weekNumber}
-                        </span>
-                        {week.title}
+              return (
+                <motion.div
+                  key={week._id}
+                  whileHover={enrolled ? { x: 4 } : undefined}
+                  className="card p-3"
+                  style={{
+                    borderLeft: isDone ? "5px solid #10b981" : "5px solid var(--brand-primary)",
+                    cursor: enrolled ? "pointer" : "default",
+                  }}
+                  onClick={() => enrolled && nav(`/course/${id}/week/${week.weekNumber}`)}
+                >
+                  <div className="d-flex align-items-center justify-content-between flex-wrap gap-3">
+                    <div className="d-flex align-items-center gap-3">
+                      <div
+                        className="rounded-circle d-flex align-items-center justify-content-center text-white flex-shrink-0"
+                        style={{
+                          width: 42,
+                          height: 42,
+                          backgroundColor: isDone ? "#10b981" : isLocked ? "var(--border-prominent)" : "var(--brand-primary)",
+                        }}
+                      >
+                        {isDone ? (
+                          <MdCheckCircle size={20} />
+                        ) : isLocked ? (
+                          <MdLock size={18} />
+                        ) : (
+                          <MdPlayCircle size={20} />
+                        )}
                       </div>
-                      {week.description && (
-                        <div className="text-secondary small mt-1">{week.description}</div>
-                      )}
+                      <div>
+                        <div className="fw-bold d-flex align-items-center gap-2 flex-wrap">
+                          <span className="badge-pill badge-primary">
+                            Week {week.weekNumber}
+                          </span>
+                          <span>{week.title}</span>
+                        </div>
+                        {week.description && (
+                          <div className="text-secondary small mt-1">{week.description}</div>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="d-flex align-items-center gap-2 flex-wrap">
+                      <span className="badge-pill badge-accent">
+                        <RiAwardLine /> {week.bonusXP} XP
+                      </span>
+                      <span className="badge-pill badge-emerald">
+                        <RiCoinsLine /> {week.bonusPoints} pts
+                      </span>
+                      <span className="text-muted small ms-1">
+                        {week.videos?.length || 0} video{week.videos?.length !== 1 ? "s" : ""}
+                      </span>
                     </div>
                   </div>
-
-                  <div className="d-flex align-items-center gap-2">
-                    <span className="badge-pill badge-accent">
-                      <RiAwardLine /> {week.bonusXP} XP
-                    </span>
-                    <span className="badge-pill badge-emerald">
-                      <RiCoinsLine /> {week.bonusPoints} pts
-                    </span>
-                    <span className="text-muted small ms-2">
-                      {week.videos?.length || 0} video{week.videos?.length !== 1 ? "s" : ""}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
+                </motion.div>
+              );
+            })}
+          </div>
+        )}
 
         {/* Bonus Modules */}
         {bonusWeeks.length > 0 && (
@@ -358,21 +427,19 @@ export const CourseDetail: React.FC = () => {
                     <div className="d-flex align-items-center justify-content-between flex-wrap gap-3">
                       <div className="d-flex align-items-center gap-3">
                         <div
-                          className="rounded-circle d-flex align-items-center justify-content-center text-white"
+                          className="rounded-circle d-flex align-items-center justify-content-center text-white flex-shrink-0"
                           style={{
-                            width: 44,
-                            height: 44,
+                            width: 42,
+                            height: 42,
                             backgroundColor: unlocked ? "var(--brand-amber)" : "var(--border-prominent)",
                           }}
                         >
-                          {unlocked ? <MdStar size={22} /> : <MdLock size={20} />}
+                          {unlocked ? <MdStar size={20} /> : <MdLock size={18} />}
                         </div>
                         <div>
                           <div className="fw-bold d-flex align-items-center gap-2">
-                            <span className="badge-pill badge-primary">
-                              BONUS
-                            </span>
-                            {week.title}
+                            <span className="badge-pill badge-primary">BONUS</span>
+                            <span>{week.title}</span>
                           </div>
                           {!unlocked && (
                             <div className="text-muted small mt-1">
@@ -392,7 +459,7 @@ export const CourseDetail: React.FC = () => {
             </div>
           </div>
         )}
-      </main>
+      </div>
     </div>
   );
 };

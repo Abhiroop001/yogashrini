@@ -8,10 +8,10 @@ echo.
 
 if exist "C:\Users\ABHIROOP\anaconda3\envs\py310\python.exe" (
     echo [OK] Using dedicated GPU environment: C:\Users\ABHIROOP\anaconda3\envs\py310\python.exe
-    "C:\Users\ABHIROOP\anaconda3\envs\py310\python.exe" app.py
+    "C:\Users\ABHIROOP\anaconda3\envs\py310\python.exe" -u app.py
 ) else (
     echo [INFO] Falling back to default system python...
-    python app.py
+    python -u app.py
 )
 
 if %ERRORLEVEL% neq 0 (

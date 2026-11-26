@@ -1,4 +1,4 @@
-// src/pages/WeekPlayer.tsx
+// Frontend/src/pages/WeekPlayer.tsx
 import React, { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
@@ -7,17 +7,18 @@ import {
   MdArrowBack,
   MdArrowForward,
   MdCheckCircle,
-  MdStar,
+  MdLock,
   MdList,
 } from "react-icons/md";
-import { RiAwardLine, RiTrophyLine } from "react-icons/ri";
-
-const API = "http://localhost:2000";
+import { RiTrophyLine } from "react-icons/ri";
+import { useAuth } from "../AuthContext";
+import { API_BASE, authFetch } from "../utils/api";
 
 interface VideoData {
   title: string;
-  filename: string;
+  filename?: string;
   description?: string;
+  locked?: boolean;
 }
 
 interface WeekData {
@@ -40,14 +41,17 @@ interface EnrollmentStatus {
 interface CourseOverview {
   _id: string;
   title: string;
+  price: number;
 }
 
 export const WeekPlayer: React.FC = () => {
   const { id, weekNum } = useParams<{ id: string; weekNum: string }>();
   const nav = useNavigate();
+  const { token, isAuthenticated } = useAuth();
 
   const [course, setCourse] = useState<CourseOverview | null>(null);
   const [allWeeks, setAllWeeks] = useState<WeekData[]>([]);
+  const [enrolled, setEnrolled] = useState<boolean>(false);
   const [enrollment, setEnrollment] = useState<EnrollmentStatus | null>(null);
   const [activeVideo, setActiveVideo] = useState<number>(0);
   const [loading, setLoading] = useState<boolean>(true);
@@ -56,36 +60,46 @@ export const WeekPlayer: React.FC = () => {
   const [xpModal, setXpModal] = useState<{ xp: number; bonusUnlocked?: boolean } | null>(null);
 
   const videoRef = useRef<HTMLVideoElement>(null);
-  const userId = localStorage.getItem("uid") || "";
 
   useEffect(() => {
+    let active = true;
+    const enrollReq =
+      isAuthenticated && token
+        ? authFetch(`/payment/enrollment/check/${id}`).then((r) => (r.ok ? r.json() : { enrolled: false }))
+        : Promise.resolve({ enrolled: false });
+
     Promise.all([
-      fetch(`${API}/course/${id}`).then((r) => r.json()),
-      fetch(`${API}/course/${id}/weeks`).then((r) => r.json()),
-      userId
-        ? fetch(`${API}/payment/enrollment/check/${id}?userId=${userId}`).then((r) => r.json())
-        : Promise.resolve({ enrolled: false }),
+      authFetch(`/course/${id}`).then((r) => r.json()),
+      authFetch(`/course/${id}/weeks`).then((r) => r.json()),
+      enrollReq,
     ])
       .then(([cData, wData, eData]) => {
+        if (!active) return;
         setCourse(cData.course || null);
         setAllWeeks(wData.weeks || []);
+        setEnrolled(Boolean(eData.enrolled || wData.authorized));
         setEnrollment(eData.enrollment || null);
         setLoading(false);
       })
-      .catch(() => setLoading(false));
-  }, [id, userId]);
+      .catch(() => {
+        if (active) setLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [id, isAuthenticated, token]);
 
   const currentWeekNum = parseInt(weekNum || "1", 10);
   const week = allWeeks.find((w) => w.weekNumber === currentWeekNum);
   const currentVideo = week?.videos?.[activeVideo];
 
   const handleComplete = async () => {
-    if (!userId || !week) return;
+    if (!isAuthenticated || !week) return;
     try {
-      const r = await fetch(`${API}/payment/enrollment/complete-week`, {
+      const r = await authFetch("/payment/enrollment/complete-week", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId, courseId: id, weekNumber: currentWeekNum }),
+        body: JSON.stringify({ courseId: id, weekNumber: currentWeekNum }),
       });
       const data = await r.json();
       if (r.ok) {
@@ -111,11 +125,42 @@ export const WeekPlayer: React.FC = () => {
     );
   }
 
+  // Strictly enforce enrollment paywall
+  if (!isAuthenticated || !enrolled) {
+    return (
+      <div className="yoga-container py-5 my-4">
+        <div className="card text-center p-5 mx-auto" style={{ maxWidth: 520 }}>
+          <MdLock size={44} className="mx-auto mb-3" style={{ color: "var(--brand-primary)" }} />
+          <h4 className="fw-bold mb-2">Enrollment Required</h4>
+          <p className="text-secondary small mb-4">
+            {!isAuthenticated
+              ? "Please sign in and enroll in this course to stream the weekly practice modules."
+              : "Complete your enrollment on the course page to unlock full video access and XP tracking."}
+          </p>
+          <div className="d-flex justify-content-center gap-2 flex-wrap">
+            <button type="button" className="btn btn-primary" onClick={() => nav(`/course/${id}`)}>
+              View Course & Enroll
+            </button>
+            {!isAuthenticated && (
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={() => nav("/login", { state: { from: `/course/${id}` } })}
+              >
+                Sign In
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (!week) {
     return (
       <div className="yoga-container text-center py-5 my-5">
         <h4>Week module not found</h4>
-        <button className="btn btn-secondary mt-3" onClick={() => nav(`/course/${id}`)}>
+        <button type="button" className="btn btn-secondary mt-3" onClick={() => nav(`/course/${id}`)}>
           Back to Course
         </button>
       </div>
@@ -135,9 +180,11 @@ export const WeekPlayer: React.FC = () => {
       >
         <div className="d-flex align-items-center gap-3">
           <button
+            type="button"
             onClick={() => nav(`/course/${id}`)}
             className="btn btn-sm btn-secondary"
             title="Return to Syllabus"
+            aria-label="Return to Syllabus"
           >
             <MdArrowBack size={18} />
           </button>
@@ -156,9 +203,11 @@ export const WeekPlayer: React.FC = () => {
             </span>
           )}
           <button
+            type="button"
             onClick={() => setSidebarOpen((v) => !v)}
             className="btn btn-sm btn-secondary"
             title="Toggle Syllabus Playlist"
+            aria-label="Toggle Syllabus Playlist"
           >
             <MdList size={18} />
           </button>
@@ -173,10 +222,10 @@ export const WeekPlayer: React.FC = () => {
             className="bg-black position-relative text-center d-flex align-items-center justify-content-center"
             style={{ width: "100%", aspectRatio: "16 / 9", maxHeight: "65vh" }}
           >
-            {currentVideo ? (
+            {currentVideo && currentVideo.filename ? (
               <video
                 ref={videoRef}
-                src={`${API}/videos/${currentVideo.filename}`}
+                src={`${API_BASE}/videos/${currentVideo.filename}?token=${encodeURIComponent(token || "")}`}
                 controls
                 className="w-100 h-100 object-fit-contain"
                 onEnded={() => {
@@ -187,14 +236,17 @@ export const WeekPlayer: React.FC = () => {
               />
             ) : (
               <div className="text-muted py-5 text-center">
-                <MdPlayCircle size={64} className="mb-2 opacity-50" />
+                <MdPlayCircle size={56} className="mb-2 opacity-50" />
                 <p className="small m-0">No videos configured for this weekly module</p>
               </div>
             )}
           </div>
 
           {/* Video Metadata Panel */}
-          <div className="p-4 flex-grow-1" style={{ backgroundColor: "var(--bg-surface)", borderBottom: "1px solid var(--border-subtle)" }}>
+          <div
+            className="p-4 flex-grow-1"
+            style={{ backgroundColor: "var(--bg-surface)", borderBottom: "1px solid var(--border-subtle)" }}
+          >
             <div className="d-flex justify-content-between align-items-start gap-3 flex-wrap">
               <div>
                 <h4 className="fw-bold mb-1 fs-5">{currentVideo?.title || week.title}</h4>
@@ -205,24 +257,22 @@ export const WeekPlayer: React.FC = () => {
 
               <div>
                 {!isAlreadyCompleted && !completed ? (
-                  <button
-                    onClick={handleComplete}
-                    className="btn btn-primary"
-                  >
-                    <MdCheckCircle size={18} /> Mark Complete (+{week.bonusXP} XP)
+                  <button type="button" onClick={handleComplete} className="btn btn-primary btn-sm">
+                    <MdCheckCircle size={17} /> Mark Complete (+{week.bonusXP} XP)
                   </button>
                 ) : (
-                  <div className="d-flex align-items-center gap-2 text-success fw-bold">
-                    <MdCheckCircle size={22} /> Module Completed
+                  <div className="d-flex align-items-center gap-2 text-success fw-bold small">
+                    <MdCheckCircle size={20} /> Module Completed
                   </div>
                 )}
               </div>
             </div>
 
             {/* Navigation Controls */}
-            <div className="d-flex gap-3 mt-4 pt-3 border-top">
+            <div className="d-flex gap-2 mt-3 pt-3 border-top">
               {prevWeek && (
                 <button
+                  type="button"
                   onClick={() => nav(`/course/${id}/week/${prevWeek.weekNumber}`)}
                   className="btn btn-sm btn-secondary"
                 >
@@ -231,6 +281,7 @@ export const WeekPlayer: React.FC = () => {
               )}
               {nextWeek && (
                 <button
+                  type="button"
                   onClick={() => nav(`/course/${id}/week/${nextWeek.weekNumber}`)}
                   className="btn btn-sm btn-primary"
                 >
@@ -247,9 +298,7 @@ export const WeekPlayer: React.FC = () => {
             className="col-12 col-lg-4 border-start p-3"
             style={{ backgroundColor: "var(--bg-surface-elevated)", maxHeight: "calc(100vh - 120px)", overflowY: "auto" }}
           >
-            <div className="fw-bold mb-3 small text-muted text-uppercase letter-spacing">
-              Course Playlist
-            </div>
+            <div className="fw-bold mb-3 small text-muted text-uppercase">Course Playlist</div>
 
             <div className="d-flex flex-column gap-2">
               {allWeeks.map((w) => {
@@ -272,15 +321,16 @@ export const WeekPlayer: React.FC = () => {
                         {isDone ? (
                           <MdCheckCircle size={18} className="text-success" />
                         ) : (
-                          <MdPlayCircle size={18} style={{ color: isCurrent ? "var(--brand-primary)" : "var(--text-muted)" }} />
+                          <MdPlayCircle
+                            size={18}
+                            style={{ color: isCurrent ? "var(--brand-primary)" : "var(--text-muted)" }}
+                          />
                         )}
                         <span className={`small ${isCurrent ? "fw-bold" : ""}`}>
                           Week {w.weekNumber}: {w.title}
                         </span>
                       </div>
-                      <span className="badge-pill badge-primary">
-                        +{w.bonusXP} XP
-                      </span>
+                      <span className="badge-pill badge-primary">+{w.bonusXP} XP</span>
                     </div>
                   </div>
                 );
@@ -312,11 +362,9 @@ export const WeekPlayer: React.FC = () => {
                 You earned <strong>+{xpModal.xp} XP</strong> towards your Yogashrini mastery certification.
               </p>
               {xpModal.bonusUnlocked && (
-                <div className="alert alert-warning py-2 mb-3 small rounded-3">
-                  Bonus Content Unlocked!
-                </div>
+                <div className="alert alert-warning py-2 mb-3 small rounded-3">Bonus Content Unlocked!</div>
               )}
-              <button className="btn btn-primary w-100" onClick={() => setXpModal(null)}>
+              <button type="button" className="btn btn-primary w-100" onClick={() => setXpModal(null)}>
                 Continue Practice
               </button>
             </motion.div>

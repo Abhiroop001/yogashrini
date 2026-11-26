@@ -5,8 +5,7 @@ import Sidebar from "../inc/Sidebar";
 import Top from "../inc/Top";
 import Footer from "../inc/Footer";
 import { MdSave, MdArrowBack, MdSpa, MdCloudUpload } from "react-icons/md";
-
-const API = "http://localhost:2000";
+import { adminFetch, API_BASE as API } from "../utils/api";
 
 interface ProductFormData {
   pname: string;
@@ -34,7 +33,7 @@ export const Editproduct: React.FC = () => {
     if (!id) return;
     const fd = new FormData();
     fd.append("id", id);
-    fetch(`${API}/product/edit`, { method: "POST", body: fd })
+    adminFetch("/product/edit", { method: "POST", body: fd })
       .then((r) => r.json())
       .then((data) => {
         setForm({
@@ -80,7 +79,7 @@ export const Editproduct: React.FC = () => {
     if (imgFile) fd.append("pimg", imgFile);
 
     try {
-      const r = await fetch(`${API}/product/update`, { method: "POST", body: fd });
+      const r = await adminFetch("/product/upd", { method: "POST", body: fd });
       if (r.ok) {
         setMsg({ type: "success", text: "Product updated successfully" });
         setTimeout(() => nav("/listproduct"), 1200);
@@ -139,7 +138,7 @@ export const Editproduct: React.FC = () => {
           </AnimatePresence>
 
           <form onSubmit={handleSubmit}>
-            <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 24 }}>
+            <div className="admin-form-split">
               <div>
                 <div className="ys-card" style={{ marginBottom: 20 }}>
                   <div className="ys-card-header">
@@ -251,7 +250,7 @@ export const Editproduct: React.FC = () => {
                       />
                       {imgPreview || currentImg ? (
                         <img
-                          src={imgPreview || `${API}/uploads/${currentImg}`}
+                          src={imgPreview || `${API}/product_img/${currentImg}`}
                           alt="Preview"
                           style={{ width: "100%", maxHeight: "160px", objectFit: "cover", borderRadius: 8 }}
                         />

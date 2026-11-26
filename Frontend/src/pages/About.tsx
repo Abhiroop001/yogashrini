@@ -31,7 +31,7 @@ export const About: React.FC = () => {
             </div>
             <div className="d-flex gap-2">
               <NavLink className="btn btn-primary btn-sm" to="/training">
-                Explore Store
+                Wellness Store
               </NavLink>
               <NavLink className="btn btn-secondary btn-sm" to="/contact">
                 Connect With Us
@@ -41,7 +41,7 @@ export const About: React.FC = () => {
         </div>
       </motion.div>
 
-      <main className="yoga-container">
+      <div className="yoga-container">
         {/* Core Pillars */}
         <div className="row g-4 mb-5">
           <div className="col-12 col-md-6">
@@ -109,7 +109,7 @@ export const About: React.FC = () => {
             balanced, and peaceful bodies and minds.
           </p>
         </div>
-      </main>
+      </div>
     </div>
   );
 };

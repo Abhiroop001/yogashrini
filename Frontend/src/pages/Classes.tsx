@@ -1,18 +1,18 @@
-// src/pages/Classes.tsx
-import React, { useState } from "react";
+// Frontend/src/pages/Classes.tsx
+import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import "./Classes.css";
 import {
-  MdSelfImprovement,
   MdAccessTime,
   MdLocationOn,
   MdPerson,
   MdFilterList,
   MdCheckCircle,
   MdCalendarToday,
-  MdClose
+  MdClose,
 } from "react-icons/md";
 import { GiMeditation, GiLotus } from "react-icons/gi";
+import { useAuth } from "../AuthContext";
 
 interface YogaClass {
   id: string;
@@ -140,11 +140,27 @@ const SCHEDULE: YogaClass[] = [
 ];
 
 const DAYS = ["All", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+const RESERVED_KEY = "yoga_reserved_classes";
 
 export const Classes: React.FC = () => {
+  const { user } = useAuth();
   const [selectedDay, setSelectedDay] = useState<string>("All");
   const [selectedClass, setSelectedClass] = useState<YogaClass | null>(null);
   const [bookingSuccess, setBookingSuccess] = useState<boolean>(false);
+  const [resName, setResName] = useState<string>(user?.name || "");
+  const [resEmail, setResEmail] = useState<string>(user?.email || "");
+  const [reservedIds, setReservedIds] = useState<string[]>(() => {
+    try {
+      return JSON.parse(localStorage.getItem(RESERVED_KEY) || "[]");
+    } catch {
+      return [];
+    }
+  });
+
+  useEffect(() => {
+    if (user?.name && !resName) setResName(user.name);
+    if (user?.email && !resEmail) setResEmail(user.email);
+  }, [user?.name, user?.email]);
 
   const filtered = SCHEDULE.filter((c) => selectedDay === "All" || c.day === selectedDay);
 
@@ -155,107 +171,121 @@ export const Classes: React.FC = () => {
 
   const confirmBooking = (e: React.FormEvent) => {
     e.preventDefault();
+    if (selectedClass && !reservedIds.includes(selectedClass.id)) {
+      const updated = [...reservedIds, selectedClass.id];
+      setReservedIds(updated);
+      localStorage.setItem(RESERVED_KEY, JSON.stringify(updated));
+    }
     setBookingSuccess(true);
     setTimeout(() => {
       setSelectedClass(null);
       setBookingSuccess(false);
-    }, 2000);
+    }, 1800);
   };
 
   return (
     <div className="classes-page-container">
-      {/* Hero Header */}
+      {/* Compact Hero Header */}
       <motion.header
-        className="ud-hero-section mb-4"
-        initial={{ opacity: 0, y: -15 }}
+        className="ud-hero-section mb-3"
+        initial={{ opacity: 0, y: -12 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4 }}
+        transition={{ duration: 0.35 }}
       >
         <div className="yoga-container">
           <div className="d-flex align-items-center gap-3">
             <div className="ud-ai-badge-icon">
-              <GiMeditation size={28} />
+              <GiMeditation size={24} />
             </div>
             <div>
               <h1 className="m-0 fs-3 fw-bold">Class Schedule & Studio Sessions</h1>
               <p className="text-secondary small m-0 mt-1">
-                Authentic classical yoga sessions led by certified yogacharyas. Join in-person or participate via live stream.
+                Authentic classical yoga sessions led by certified yogacharyas. Join in-person or live stream.
               </p>
             </div>
           </div>
         </div>
       </motion.header>
 
-      <main className="yoga-container">
-        {/* Day Filter Bar */}
-        <div className="day-filter-bar">
-          <span className="text-muted fw-bold small d-flex align-items-center gap-1 me-2 text-nowrap">
-            <MdFilterList /> Day:
-          </span>
-          {DAYS.map((day) => (
-            <button
-              key={day}
-              onClick={() => setSelectedDay(day)}
-              className={`btn btn-sm text-nowrap ${
-                selectedDay === day ? "btn-primary" : "btn-secondary"
-              }`}
-            >
-              {day}
-            </button>
-          ))}
+      <div className="yoga-container">
+        {/* Wrapped Day Filter Bar (Never clips on mobile) */}
+        <div className="card p-3 mb-4">
+          <div className="compact-filter-bar">
+            <span className="text-muted fw-bold small d-flex align-items-center gap-1 me-1">
+              <MdFilterList /> Day:
+            </span>
+            {DAYS.map((day) => (
+              <button
+                key={day}
+                type="button"
+                onClick={() => setSelectedDay(day)}
+                className={`btn btn-sm ${
+                  selectedDay === day ? "btn-primary" : "btn-secondary"
+                }`}
+              >
+                {day}
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Classes Cards Grid */}
         <div className="schedule-grid">
           <AnimatePresence>
-            {filtered.map((cls, idx) => (
-              <motion.div
-                key={cls.id}
-                className="schedule-card"
-                initial={{ opacity: 0, y: 15 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.96 }}
-                transition={{ duration: 0.25, delay: idx * 0.03 }}
-              >
-                <div>
-                  <div className="schedule-card-header">
-                    <span className="badge-pill badge-primary">
-                      {cls.day}
-                    </span>
-                    <span className="badge-pill badge-accent">
-                      {cls.level}
-                    </span>
+            {filtered.map((cls, idx) => {
+              const isReserved = reservedIds.includes(cls.id);
+              return (
+                <motion.div
+                  key={cls.id}
+                  className="schedule-card"
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.96 }}
+                  transition={{ duration: 0.22, delay: idx * 0.025 }}
+                >
+                  <div>
+                    <div className="schedule-card-header">
+                      <span className="badge-pill badge-primary">{cls.day}</span>
+                      <span className="badge-pill badge-accent">{cls.level}</span>
+                    </div>
+
+                    <h4 className="schedule-card-title">{cls.title}</h4>
+
+                    <div className="schedule-meta-list">
+                      <div className="schedule-meta-row">
+                        <MdAccessTime style={{ color: "var(--brand-primary)" }} size={15} />
+                        <span>{cls.time}</span>
+                      </div>
+                      <div className="schedule-meta-row">
+                        <MdPerson style={{ color: "var(--brand-primary)" }} size={15} />
+                        <span>{cls.instructor}</span>
+                      </div>
+                      <div className="schedule-meta-row">
+                        <MdLocationOn style={{ color: "var(--brand-primary)" }} size={15} />
+                        <span>{cls.location}</span>
+                      </div>
+                    </div>
                   </div>
 
-                  <h4 className="schedule-card-title">{cls.title}</h4>
-
-                  <div className="schedule-meta-list">
-                    <div className="schedule-meta-row">
-                      <MdAccessTime style={{ color: "var(--brand-primary)" }} size={16} />
-                      <span>{cls.time}</span>
-                    </div>
-                    <div className="schedule-meta-row">
-                      <MdPerson style={{ color: "var(--brand-primary)" }} size={16} />
-                      <span>{cls.instructor}</span>
-                    </div>
-                    <div className="schedule-meta-row">
-                      <MdLocationOn style={{ color: "var(--brand-primary)" }} size={16} />
-                      <span>{cls.location}</span>
-                    </div>
+                  <div className="schedule-card-footer">
+                    <span className="text-muted small">{cls.capacity}</span>
+                    {isReserved ? (
+                      <span className="badge-pill badge-emerald">
+                        <MdCheckCircle size={14} /> Reserved
+                      </span>
+                    ) : (
+                      <button
+                        type="button"
+                        className="btn btn-secondary btn-sm"
+                        onClick={() => handleBook(cls)}
+                      >
+                        <MdCalendarToday size={14} /> Reserve Spot
+                      </button>
+                    )}
                   </div>
-                </div>
-
-                <div className="schedule-card-footer">
-                  <span className="text-muted small">{cls.capacity}</span>
-                  <button
-                    className="btn btn-secondary btn-sm"
-                    onClick={() => handleBook(cls)}
-                  >
-                    <MdCalendarToday size={15} /> Reserve Spot
-                  </button>
-                </div>
-              </motion.div>
-            ))}
+                </motion.div>
+              );
+            })}
           </AnimatePresence>
         </div>
 
@@ -275,9 +305,10 @@ export const Classes: React.FC = () => {
                     <GiLotus style={{ color: "var(--brand-primary)" }} /> Reserve Session Spot
                   </h5>
                   <button
+                    type="button"
                     className="ud-modal-close-btn"
                     onClick={() => setSelectedClass(null)}
-                    aria-label="Close"
+                    aria-label="Close reservation dialog"
                   >
                     <MdClose size={20} />
                   </button>
@@ -294,7 +325,10 @@ export const Classes: React.FC = () => {
                     </div>
                   ) : (
                     <form onSubmit={confirmBooking}>
-                      <div className="p-3 rounded-3 mb-3 small" style={{ backgroundColor: "var(--bg-secondary)", border: "1px solid var(--border-subtle)" }}>
+                      <div
+                        className="p-3 rounded-3 mb-3 small"
+                        style={{ backgroundColor: "var(--bg-secondary)", border: "1px solid var(--border-subtle)" }}
+                      >
                         <div className="fw-bold">{selectedClass.title}</div>
                         <div className="text-secondary mt-1">
                           {selectedClass.day} | {selectedClass.time}
@@ -303,13 +337,31 @@ export const Classes: React.FC = () => {
                       </div>
 
                       <div className="mb-3">
-                        <label className="form-label small fw-bold">Full Name</label>
-                        <input type="text" required className="form-control" placeholder="Enter your full name" />
+                        <label htmlFor="cls-res-name" className="form-label small fw-bold">Full Name</label>
+                        <input
+                          id="cls-res-name"
+                          name="name"
+                          type="text"
+                          required
+                          className="form-control"
+                          placeholder="Enter your full name"
+                          value={resName}
+                          onChange={(e) => setResName(e.target.value)}
+                        />
                       </div>
 
                       <div className="mb-3">
-                        <label className="form-label small fw-bold">Email Address</label>
-                        <input type="email" required className="form-control" placeholder="name@example.com" />
+                        <label htmlFor="cls-res-email" className="form-label small fw-bold">Email Address</label>
+                        <input
+                          id="cls-res-email"
+                          name="email"
+                          type="email"
+                          required
+                          className="form-control"
+                          placeholder="name@example.com"
+                          value={resEmail}
+                          onChange={(e) => setResEmail(e.target.value)}
+                        />
                       </div>
 
                       <div className="d-flex gap-2 justify-content-end pt-2">
@@ -331,7 +383,7 @@ export const Classes: React.FC = () => {
             </div>
           )}
         </AnimatePresence>
-      </main>
+      </div>
     </div>
   );
 };

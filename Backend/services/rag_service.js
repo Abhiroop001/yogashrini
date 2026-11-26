@@ -5,10 +5,12 @@
 const path = require("path");
 const fs = require("fs");
 const aiGateway = require("./ai_gateway");
+const asanaMediaService = require("./asana_media_service");
 
 class RAGService {
   constructor() {
     this.kbPath = path.join(__dirname, "..", "data", "yoga_knowledge_base.json");
+    this.metabolicRagPath = path.join(__dirname, "..", "..", "docs", "rag", "YOGA_METABOLIC_DIET_AND_ASANA_RAG.md");
     this.chunks = [];
     this.vocabulary = new Set();
     this.idfScores = {};
@@ -89,7 +91,27 @@ class RAGService {
         });
       }
 
-      // 3. Compute Term Frequencies and IDF
+      // 3. Ingest Deeply Researched Metabolic Diet & Asana Markdown RAG Document
+      if (fs.existsSync(this.metabolicRagPath)) {
+        const mdText = fs.readFileSync(this.metabolicRagPath, "utf-8");
+        const sections = mdText.split(/\r?\n(?=## Chunk \d+:)/g);
+        sections.forEach((sec, idx) => {
+          const trimmed = sec.trim();
+          const headingMatch = trimmed.match(/^## Chunk \d+:\s*(.+)/);
+          if (!headingMatch) return;
+          const title = headingMatch[1].trim();
+          const bodyText = trimmed.replace(/^## Chunk \d+:.*\r?\n/, "").replace(/[#*|>`$]/g, " ").replace(/\s+/g, " ").trim();
+          this.chunks.push({
+            id: `metabolic-rag-${idx}`,
+            title: `Clinical RAG: ${title}`,
+            category: "Metabolic Nutrition & Asana Science",
+            content: bodyText.slice(0, 2600),
+            tags: ["weight", "loss", "gain", "diet", "bmi", "bmr", "tdee", "protein", "calories", "nutrition", "metabolism", "vajrasana", "surya namaskar", "pranayama"]
+          });
+        });
+      }
+
+      // 4. Compute Term Frequencies and IDF
       this._computeIDF();
       this.initialized = true;
       console.log(`[RAG Service] Successfully indexed ${this.chunks.length} canonical knowledge chunks.`);
@@ -177,14 +199,15 @@ class RAGService {
   }
 
   /**
-   * Generate an authoritative, domain-grounded response using RAG
+   * Generate an authoritative, domain-grounded response using RAG and attach relevant Asana visuals
    * @param {string} userMessage
    * @param {Array<Object>} history
-   * @returns {Promise<{reply: string, sources: Array<string>, model: string, provider: string}>}
+   * @param {string} apiBase
+   * @returns {Promise<{reply: string, sources: Array<string>, images: Array<Object>, model: string, provider: string}>}
    */
-  async queryWithRAG(userMessage, history = []) {
+  async queryWithRAG(userMessage, history = [], apiBase = "http://localhost:2000") {
     // 1. Retrieve authoritative chunks
-    const relevantChunks = this.retrieve(userMessage, 3);
+    const relevantChunks = this.retrieve(userMessage, 4);
 
     // 2. Format context block
     let contextBlock = "Canonical Yogashrini Knowledge Base:\n";
@@ -198,9 +221,10 @@ class RAGService {
 
     // 3. Construct system prompt
     const systemPrompt = `You are the Yogashrini AI Master Guru and Movement Science Specialist.
-Your mission is to provide deeply knowledgeable, clinically sound, and traditional yet scientifically grounded guidance.
+Your mission is to provide deeply knowledgeable, clinically sound, and traditional yet scientifically grounded guidance covering yoga asanas, pranayama, biomechanics, contraindications, and evidence-based metabolic diet nutrition.
 Use the verified canonical knowledge below to answer the user inquiry accurately without hallucination.
 Adhere strictly to traditional Sanskrit terminology and anatomical precision.
+If the user asks to see, visualize, or illustrate an asana, clearly explain step-by-step posture alignment cues and refer naturally to the attached posture visual cards rendered directly below your response. NEVER state that you cannot display, fetch, or generate images, because the Yogashrini platform renders canonical and AI posture illustrations inline automatically.
 Do NOT use emojis anywhere in your response. Maintain an articulate, encouraging, and scholarly tone.
 
 ${contextBlock}`;
@@ -214,15 +238,23 @@ ${contextBlock}`;
       { role: "user", content: userMessage }
     ];
 
-    // 4. Execute LLM completion via Gateway
-    const response = await aiGateway.completeChat(messages, { temperature: 0.25, max_tokens: 900 });
+    // 4. Execute LLM completion via Gateway + resolve matching Asana visuals in parallel
+    const [response, images] = await Promise.all([
+      aiGateway.completeChat(messages, { temperature: 0.25, max_tokens: 950 }),
+      asanaMediaService.resolveImagesForChat({
+        query: userMessage,
+        retrievedChunks: relevantChunks,
+        apiBase,
+      }),
+    ]);
 
     const sources = relevantChunks.map(c => c.title);
     if (sources.length === 0) sources.push("Yogashrini Classical Curriculum & Movement Science");
 
     return {
       reply: response.content,
-      sources: sources,
+      sources,
+      images: images || [],
       model: response.model,
       provider: response.provider
     };

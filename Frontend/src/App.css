@@ -1,5 +1,5 @@
 /* Frontend/src/App.css
-   Modernized Global Component & Layout Styling
+   Modernized Global Component & Compact Layout Styling
    Strict Zero Emojis - Framer Motion & Responsive Utility Classes
 */
 
@@ -18,17 +18,17 @@
   width: 100%;
 }
 
-/* ── Container Consistency ────────────────────────────────────────────────── */
+/* ── Compact Container Rhythm ─────────────────────────────────────────────── */
 .yoga-container {
   width: 100%;
-  max-width: 1240px;
+  max-width: 1220px;
   margin-left: auto;
   margin-right: auto;
-  padding-left: clamp(16px, 4vw, 28px);
-  padding-right: clamp(16px, 4vw, 28px);
+  padding-left: clamp(14px, 3vw, 24px);
+  padding-right: clamp(14px, 3vw, 24px);
 }
 
-/* ── Clean Professional Button Hierarchy (NO !important overrides) ────────── */
+/* ── Button Hierarchy & Accessible Disabled States ────────────────────────── */
 button {
   font-family: inherit;
 }
@@ -37,49 +37,58 @@ button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: 7px;
   font-weight: 600;
-  font-size: 0.92rem;
-  padding: 10px 20px;
+  font-size: 0.88rem;
+  padding: 9px 18px;
   border-radius: var(--radius-md);
   border: 1px solid transparent;
   cursor: pointer;
   transition: all var(--transition-fast);
   text-decoration: none;
-  line-height: 1.4;
+  line-height: 1.35;
   white-space: nowrap;
 }
 
-.btn:active {
-  transform: scale(0.98);
+.btn:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+.btn:disabled,
+.btn[disabled] {
+  opacity: 0.48 !important;
+  cursor: not-allowed !important;
+  transform: none !important;
+  box-shadow: none !important;
+  filter: grayscale(0.35);
 }
 
 .btn-primary {
   background: linear-gradient(135deg, var(--brand-primary) 0%, #D81B60 100%);
   color: #FFFFFF !important;
   border: 1px solid rgba(255, 255, 255, 0.15);
-  box-shadow: 0 4px 14px rgba(255, 45, 111, 0.32);
+  box-shadow: 0 4px 12px rgba(255, 45, 111, 0.28);
 }
 
-.btn-primary:hover {
+.btn-primary:hover:not(:disabled) {
   background: linear-gradient(135deg, var(--brand-primary-hover) 0%, #AD1457 100%);
   color: #FFFFFF !important;
-  box-shadow: 0 6px 20px rgba(255, 45, 111, 0.45);
-  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(255, 45, 111, 0.42);
+  transform: translateY(-1px);
 }
 
 .btn-accent {
   background: linear-gradient(135deg, var(--brand-accent) 0%, #6D28D9 100%);
   color: #FFFFFF !important;
   border: 1px solid rgba(255, 255, 255, 0.15);
-  box-shadow: 0 4px 14px var(--brand-accent-glow);
+  box-shadow: 0 4px 12px var(--brand-accent-glow);
 }
 
-.btn-accent:hover {
+.btn-accent:hover:not(:disabled) {
   background: linear-gradient(135deg, #6D28D9 0%, #5B21B6 100%);
   color: #FFFFFF !important;
-  box-shadow: 0 6px 20px rgba(124, 58, 237, 0.45);
-  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(124, 58, 237, 0.42);
+  transform: translateY(-1px);
 }
 
 .btn-secondary {
@@ -88,7 +97,7 @@ button {
   border: 1px solid var(--border-prominent);
 }
 
-.btn-secondary:hover {
+.btn-secondary:hover:not(:disabled) {
   background-color: var(--bg-surface-elevated);
   border-color: var(--brand-primary);
   color: var(--brand-primary) !important;
@@ -101,7 +110,7 @@ button {
   border: 1px solid var(--border-prominent);
 }
 
-.btn-outline:hover {
+.btn-outline:hover:not(:disabled) {
   background-color: var(--brand-primary-subtle);
   border-color: var(--brand-primary);
   color: var(--brand-primary) !important;
@@ -113,31 +122,31 @@ button {
   border-color: transparent;
 }
 
-.btn-ghost:hover {
+.btn-ghost:hover:not(:disabled) {
   background: var(--brand-primary-subtle);
   color: var(--brand-primary) !important;
 }
 
 .btn-sm {
-  padding: 6px 14px;
-  font-size: 0.82rem;
+  padding: 6px 13px;
+  font-size: 0.8rem;
   border-radius: var(--radius-sm);
 }
 
 .btn-lg {
-  padding: 14px 28px;
-  font-size: 1.05rem;
+  padding: 12px 24px;
+  font-size: 1rem;
   border-radius: var(--radius-lg);
 }
 
-/* ── Badges & Chips ───────────────────────────────────────────────────────── */
+/* ── Badges & High-Contrast Overlays ──────────────────────────────────────── */
 .badge-pill {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  padding: 4px 12px;
+  padding: 4px 11px;
   border-radius: var(--radius-full);
-  font-size: 0.78rem;
+  font-size: 0.76rem;
   font-weight: 600;
   letter-spacing: 0.02em;
 }
@@ -149,18 +158,38 @@ button {
 }
 
 .badge-accent {
-  background: rgba(124, 58, 237, 0.12);
+  background: rgba(124, 58, 237, 0.14);
   color: var(--brand-accent);
-  border: 1px solid rgba(124, 58, 237, 0.25);
+  border: 1px solid rgba(124, 58, 237, 0.28);
+}
+
+body[data-theme="dark"] .badge-accent {
+  background: rgba(167, 139, 250, 0.2);
+  color: #DDD6FE;
+  border-color: rgba(167, 139, 250, 0.35);
 }
 
 .badge-emerald {
-  background: rgba(16, 185, 129, 0.12);
-  color: #10B981;
-  border: 1px solid rgba(16, 185, 129, 0.25);
+  background: rgba(16, 185, 129, 0.14);
+  color: #059669;
+  border: 1px solid rgba(16, 185, 129, 0.3);
 }
 
-/* ── Card Overrides for Dark Mode Compatibility ───────────────────────────── */
+body[data-theme="dark"] .badge-emerald {
+  background: rgba(16, 185, 129, 0.22);
+  color: #6EE7B7;
+  border-color: rgba(16, 185, 129, 0.38);
+}
+
+/* Solid translucent pill for thumbnails over light or dark photos */
+.badge-overlay-surface {
+  background: rgba(15, 23, 42, 0.84) !important;
+  color: #FFFFFF !important;
+  border: 1px solid rgba(255, 255, 255, 0.18) !important;
+  backdrop-filter: blur(8px);
+}
+
+/* ── Card Overrides ───────────────────────────────────────────────────────── */
 .card {
   background-color: var(--bg-surface) !important;
   color: var(--text-primary) !important;
@@ -174,22 +203,22 @@ button {
   border-color: var(--border-prominent) !important;
 }
 
-/* ── Form Controls for Consistent Dark / Light Mode ───────────────────────── */
+/* ── Form Controls ────────────────────────────────────────────────────────── */
 .form-control,
 .form-select {
   background-color: var(--bg-surface) !important;
   color: var(--text-primary) !important;
   border: 1.5px solid var(--border-prominent) !important;
   border-radius: var(--radius-md) !important;
-  padding: 10px 16px;
-  font-size: 0.95rem;
+  padding: 9px 14px;
+  font-size: 0.92rem;
   transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
 }
 
 .form-control-sm,
 .form-select-sm {
-  padding: 7px 12px !important;
-  font-size: 0.88rem !important;
+  padding: 6px 11px !important;
+  font-size: 0.85rem !important;
 }
 
 .form-control:focus,
@@ -217,17 +246,25 @@ body[data-theme="dark"] .form-select {
 
 body[data-theme="dark"] .badge-primary {
   background: rgba(255, 45, 111, 0.2);
-  color: #FF5A8E;
-  border: 1px solid rgba(255, 90, 142, 0.35);
+  color: #FF85AE;
+  border: 1px solid rgba(255, 90, 142, 0.38);
+}
+
+/* ── Compact Responsive Filter Pills Bar ──────────────────────────────────── */
+.compact-filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
 }
 
 /* ── Global Footer ────────────────────────────────────────────────────────── */
 .yoga-global-footer {
   background-color: var(--bg-secondary);
   border-top: 1px solid var(--border-subtle);
-  padding: 24px 0;
+  padding: 18px 0;
   margin-top: auto;
   color: var(--text-muted);
-  font-size: 0.88rem;
+  font-size: 0.84rem;
   text-align: center;
 }

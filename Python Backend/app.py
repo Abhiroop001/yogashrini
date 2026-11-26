@@ -1,6 +1,16 @@
 # app.py  –  Yogashirini Python Backend
 # Model: EfficientNetB0  (weights-only save, TF 2.10)
-import os, sys
+import os, sys, socket
+
+def _port_5000_already_active() -> bool:
+    """Prevent launching duplicate processes that would double-allocate the 4 GB RTX 3050 VRAM."""
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+        sock.settimeout(0.5)
+        return sock.connect_ex(("127.0.0.1", 5000)) == 0
+
+if os.environ.get("ALLOW_MULTI_GPU_WORKER") != "1" and _port_5000_already_active():
+    print("[*] Yogashirini AI Backend is ALREADY running on http://127.0.0.1:5000 — skipping duplicate RTX 3050 VRAM allocation.")
+    sys.exit(0)
 
 # ── Dynamic Environment Auto-Routing ─────────────────────────────────────────
 # On Windows, native NVIDIA GeForce RTX 3050 GPU acceleration requires TensorFlow
@@ -18,25 +28,115 @@ if os.path.exists(PY310_PYTHON) and os.path.normcase(sys.executable) != os.path.
     except KeyboardInterrupt:
         sys.exit(0)
 
-import io, json, base64, tempfile
+import io, json, base64, tempfile, time, threading, subprocess
 from pathlib import Path
 
 os.environ["MPLCONFIGDIR"] = str(Path(tempfile.gettempdir()) / "matplotlib")
+os.environ.setdefault("TF_GPU_THREAD_MODE", "gpu_private")
+os.environ.setdefault("TF_CPP_MIN_LOG_LEVEL", "2")
+
+# Point TensorFlow XLA JIT to cuda_nvcc libdevice inside conda py310 for RTX 3050 kernel fusion
+_NVCC_CANDIDATES = [
+    Path(sys.prefix) / "Lib" / "site-packages" / "nvidia" / "cuda_nvcc",
+    Path(r"C:\Users\ABHIROOP\anaconda3\envs\py310\Lib\site-packages\nvidia\cuda_nvcc"),
+]
+XLA_CUDA_DIR = next((str(p).replace("\\", "/") for p in _NVCC_CANDIDATES if (p / "nvvm" / "libdevice" / "libdevice.10.bc").exists()), None)
+if XLA_CUDA_DIR:
+    os.environ["XLA_FLAGS"] = f"--xla_gpu_cuda_data_dir={XLA_CUDA_DIR}"
 
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from PIL import Image, ImageDraw, ImageFont
 import numpy as np
+try:
+    import cv2
+except ImportError:
+    cv2 = None
 import tensorflow as tf
 
-# ── GPU ───────────────────────────────────────────────────────────────────────
+# ── GPU & RTX 3050 Optimization (Strict 4 GB VRAM Co-existence Budget) ────────
 gpus = tf.config.list_physical_devices("GPU")
+HAS_GPU = bool(gpus)
 if gpus:
     for gpu in gpus:
-        tf.config.experimental.set_memory_growth(gpu, True)
-    print(f"GPU ready ({len(gpus)} device(s))")
+        try:
+            # Cap TensorFlow BFC allocator to 1152 MB so Chrome WebGL MediaPipe retains ample headroom on 4 GB RTX 3050
+            tf.config.set_logical_device_configuration(
+                gpu,
+                [tf.config.LogicalDeviceConfiguration(memory_limit=1152)],
+            )
+        except Exception:
+            tf.config.experimental.set_memory_growth(gpu, True)
+    print(f"GPU ready ({len(gpus)} device(s), 1152 MB TF cap) | XLA cuda_data_dir={XLA_CUDA_DIR or 'not_found'}")
 else:
     print("No GPU – CPU mode")
+
+GPU_INFERENCE_LOCK = threading.Lock()
+_VRAM_CACHE = {"ts": 0.0, "data": {"gpu_name": "NVIDIA GeForce RTX 3050 Laptop GPU" if HAS_GPU else "CPU", "vram_total_mb": None, "vram_used_mb": None, "vram_free_mb": None}}
+
+def get_vram_stats(force: bool = False) -> dict:
+    """Return cached GPU VRAM stats via nvidia-smi (refreshed at most every 1.5s)."""
+    now = time.time()
+    if not force and (now - _VRAM_CACHE["ts"] < 1.5):
+        return _VRAM_CACHE["data"]
+    try:
+        out = subprocess.check_output(
+            ["nvidia-smi", "--query-gpu=name,memory.total,memory.used,memory.free", "--format=csv,noheader,nounits"],
+            timeout=0.6,
+            stderr=subprocess.DEVNULL,
+            text=True,
+        ).strip().splitlines()[0]
+        parts = [p.strip() for p in out.split(",")]
+        if len(parts) == 4:
+            _VRAM_CACHE["data"] = {
+                "gpu_name": parts[0],
+                "vram_total_mb": int(parts[1]),
+                "vram_used_mb": int(parts[2]),
+                "vram_free_mb": int(parts[3]),
+            }
+            _VRAM_CACHE["ts"] = now
+    except Exception:
+        pass
+    return _VRAM_CACHE["data"]
+
+def compile_and_warmup_runner(model_obj, name: str, sample_value: float = 0.5, use_xla: bool = True):
+    """Build a static-shape @tf.function runner (XLA JIT when use_xla=True) and run startup warmup."""
+    device_target = "/GPU:0" if HAS_GPU else "/CPU:0"
+    model_obj.trainable = False
+    sample_np = np.full((1, *IMG_SIZE, 3), sample_value, dtype=np.float32)
+
+    if HAS_GPU and XLA_CUDA_DIR and use_xla:
+        try:
+            @tf.function(input_signature=[tf.TensorSpec(shape=(1, *IMG_SIZE, 3), dtype=tf.float32)], jit_compile=True)
+            def _xla_fn(batch_tensor):
+                return model_obj(batch_tensor, training=False)
+
+            with tf.device(device_target):
+                for _ in range(3):
+                    _ = _xla_fn(sample_np).numpy()
+                t0 = time.perf_counter()
+                for _ in range(5):
+                    _ = _xla_fn(sample_np).numpy()
+                ms = round((time.perf_counter() - t0) / 5.0 * 1000.0, 2)
+            print(f"[GPU WARMUP] {name}: XLA JIT compiled on RTX 3050 ({ms} ms/frame avg, {round(1000.0/max(ms,0.01),1)} FPS)")
+            return _xla_fn, "RTX 3050 XLA GPU", ms
+        except Exception as e:
+            print(f"[!] {name} XLA fallback to standard @tf.function:", str(e)[:120])
+
+    @tf.function(input_signature=[tf.TensorSpec(shape=(1, *IMG_SIZE, 3), dtype=tf.float32)])
+    def _direct_fn(batch_tensor):
+        return model_obj(batch_tensor, training=False)
+
+    with tf.device(device_target):
+        for _ in range(2):
+            _ = _direct_fn(sample_np).numpy()
+        t0 = time.perf_counter()
+        for _ in range(5):
+            _ = _direct_fn(sample_np).numpy()
+        ms = round((time.perf_counter() - t0) / 5.0 * 1000.0, 2)
+    provider = "RTX 3050 Direct GPU" if HAS_GPU else "CPU"
+    print(f"[GPU WARMUP] {name}: {provider} ({ms} ms/frame avg, {round(1000.0/max(ms,0.01),1)} FPS)")
+    return _direct_fn, provider, ms
 
 from tensorflow.keras.applications import EfficientNetB0
 from tensorflow.keras.layers import (
@@ -91,16 +191,23 @@ if not WEIGHTS_FILE.exists():
     print("ERROR: weights file not found"); sys.exit(1)
 
 keras_model.load_weights(str(WEIGHTS_FILE))
-keras_model.make_predict_function()
-print("EfficientNetB0 weights loaded successfully.")
+efficientnet_runner, EFFICIENTNET_PROVIDER, EFFICIENTNET_WARMUP_MS = compile_and_warmup_runner(
+    keras_model, "EfficientNetB0 (47-class)", sample_value=127.5, use_xla=False
+)
+print(f"EfficientNetB0 ready via {EFFICIENTNET_PROVIDER}.")
 
 # ── Load Dedicated GPU Vrikshasana Classifier ──────────────────────────────────
 vrikshasana_gpu_model = None
+vrikshasana_runner = None
+VRIKSHASANA_PROVIDER = "Unavailable"
+VRIKSHASANA_WARMUP_MS = None
 if VRIKSHASANA_MODEL_FILE.exists():
     try:
-        vrikshasana_gpu_model = load_model(str(VRIKSHASANA_MODEL_FILE))
-        vrikshasana_gpu_model.make_predict_function()
-        print("Dedicated Vrikshasana GPU model loaded successfully on RTX 3050.")
+        vrikshasana_gpu_model = load_model(str(VRIKSHASANA_MODEL_FILE), compile=False)
+        vrikshasana_runner, VRIKSHASANA_PROVIDER, VRIKSHASANA_WARMUP_MS = compile_and_warmup_runner(
+            vrikshasana_gpu_model, "Vrikshasana Detector", sample_value=0.5, use_xla=True
+        )
+        print(f"Dedicated Vrikshasana model ready via {VRIKSHASANA_PROVIDER}.")
     except Exception as e:
         print("[!] Warning: Could not load dedicated Vrikshasana GPU model:", e)
 
@@ -117,9 +224,40 @@ app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "*"}})
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
+def decode_dataurl_bytes(dataurl: str) -> bytes:
+    encoded = dataurl.split(",", 1)[1] if "," in dataurl else dataurl
+    return base64.b64decode(encoded)
+
 def dataurl_to_pil(dataurl: str) -> Image.Image:
-    _, encoded = dataurl.split(",", 1)
-    return Image.open(io.BytesIO(base64.b64decode(encoded))).convert("RGB")
+    return Image.open(io.BytesIO(decode_dataurl_bytes(dataurl))).convert("RGB")
+
+def decode_rgb_batch(raw_bytes: bytes, size=IMG_SIZE, scale=None) -> np.ndarray:
+    """Fast vectorized decode + resize (cv2 preferred) into float32 (1, H, W, 3) batch."""
+    if cv2 is not None:
+        buf = np.frombuffer(raw_bytes, dtype=np.uint8)
+        bgr = cv2.imdecode(buf, cv2.IMREAD_COLOR)
+        if bgr is not None:
+            resized = cv2.resize(bgr, size, interpolation=cv2.INTER_LINEAR)
+            rgb = cv2.cvtColor(resized, cv2.COLOR_BGR2RGB)
+            arr = rgb.astype(np.float32)
+            if scale is not None:
+                arr *= np.float32(scale)
+            return np.expand_dims(arr, 0)
+    pil = Image.open(io.BytesIO(raw_bytes)).convert("RGB").resize(size, Image.BILINEAR)
+    arr = np.asarray(pil, dtype=np.float32)
+    if scale is not None:
+        arr = arr * np.float32(scale)
+    return np.expand_dims(arr, 0)
+
+def infer_gpu_batch(runner_fn, batch_np: np.ndarray):
+    """Execute thread-safe RTX 3050 GPU forward pass and return (numpy_output, latency_ms)."""
+    device_target = "/GPU:0" if HAS_GPU else "/CPU:0"
+    t0 = time.perf_counter()
+    with GPU_INFERENCE_LOCK:
+        with tf.device(device_target):
+            out = runner_fn(batch_np).numpy()
+    ms = round((time.perf_counter() - t0) * 1000.0, 2)
+    return out, ms
 
 def pil_to_dataurl(img: Image.Image, quality: int = 85) -> str:
     buf = io.BytesIO()
@@ -129,8 +267,8 @@ def pil_to_dataurl(img: Image.Image, quality: int = 85) -> str:
 
 def preprocess(pil_img: Image.Image) -> np.ndarray:
     """Resize and add batch dim. EfficientNet handles its own normalisation."""
-    img = pil_img.resize(IMG_SIZE, Image.LANCZOS)
-    arr = np.array(img, dtype=np.float32)
+    img = pil_img.resize(IMG_SIZE, Image.BILINEAR)
+    arr = np.asarray(img, dtype=np.float32)
     return np.expand_dims(arr, 0)            # (1, 224, 224, 3)
 
 def annotate_image(pil_img: Image.Image, label: str, score: float,
@@ -156,13 +294,13 @@ def annotate_image(pil_img: Image.Image, label: str, score: float,
     return img
 
 # ── Prediction ────────────────────────────────────────────────────────────────
-def run_predict(pil_img: Image.Image):
-    x     = preprocess(pil_img)
-    probs = keras_model.predict(x, verbose=0)[0]       # shape (47,)
+def run_predict(x_batch: np.ndarray):
+    out, gpu_ms = infer_gpu_batch(efficientnet_runner, x_batch)
+    probs = out[0]                                   # shape (47,)
     top5_idx  = np.argsort(probs)[-5:][::-1]
     top5 = [(class_names[i], float(probs[i])) for i in top5_idx]
     label, score = top5[0]
-    return label, score, top5, probs
+    return label, score, top5, probs, gpu_ms
 
 # ── Routes ────────────────────────────────────────────────────────────────────
 @app.route("/health", methods=["GET"])
@@ -171,7 +309,11 @@ def health():
         "status": "ok",
         "model": "EfficientNetB0",
         "classes": NUM_CLASSES,
-        "accuracy": "84.96%"
+        "accuracy": "84.96%",
+        "gpu_available": HAS_GPU,
+        "execution_provider": EFFICIENTNET_PROVIDER,
+        "warmup_ms": EFFICIENTNET_WARMUP_MS,
+        "vram": get_vram_stats(),
     })
 
 @app.route("/predict", methods=["POST"])
@@ -182,31 +324,36 @@ def predict():
 
     # ── decode image ──────────────────────────────────────────────────────────
     try:
-        pil = dataurl_to_pil(data["image"])
+        raw_bytes = decode_dataurl_bytes(data["image"])
+        x_batch = decode_rgb_batch(raw_bytes, size=IMG_SIZE, scale=None)
     except Exception as e:
         return jsonify({"error": "invalid image data", "detail": str(e)}), 400
 
     # ── inference ─────────────────────────────────────────────────────────────
     try:
-        label, score, top5, _probs = run_predict(pil)
+        label, score, top5, _probs, gpu_ms = run_predict(x_batch)
     except Exception as e:
         print("Inference error:", repr(e))
         return jsonify({"error": "inference_failed", "detail": str(e)}), 500
 
     # ── annotated image ───────────────────────────────────────────────────────
     try:
+        pil = Image.open(io.BytesIO(raw_bytes)).convert("RGB")
         annotated_pil  = annotate_image(pil, label, score, top5)
         annotated_url  = pil_to_dataurl(annotated_pil, quality=82)
     except Exception:
         annotated_url  = None
 
     return jsonify({
-        "label"           : label,
-        "score"           : score,
-        "confidence_pct"  : round(score * 100, 2),
-        "top5"            : [{"label": c, "score": round(p, 4)} for c, p in top5],
-        "keypoints"       : [],          # placeholder for future pose-landmark integration
-        "annotated_image" : annotated_url,
+        "label"              : label,
+        "score"              : score,
+        "confidence_pct"     : round(score * 100, 2),
+        "top5"               : [{"label": c, "score": round(p, 4)} for c, p in top5],
+        "keypoints"          : [],          # placeholder for future pose-landmark integration
+        "annotated_image"    : annotated_url,
+        "gpu_inference_ms"   : gpu_ms,
+        "gpu_fps"            : round(1000.0 / max(gpu_ms, 0.01), 1),
+        "execution_provider" : EFFICIENTNET_PROVIDER,
     })
 
 @app.route("/classes", methods=["GET"])
@@ -442,12 +589,17 @@ def evaluate_vrikshasana(landmarks, gpu_prob=1.0):
 def vrikshasana_status():
     """Return status of GPU Vrikshasana models and system capabilities."""
     gpu_devices = tf.config.list_physical_devices("GPU")
+    vram = get_vram_stats(force=True)
     return jsonify({
         "status": "ready",
         "gpu_available": len(gpu_devices) > 0,
-        "gpu_name": gpu_devices[0].name if gpu_devices else "CPU",
+        "gpu_name": vram.get("gpu_name") or (gpu_devices[0].name if gpu_devices else "CPU"),
         "device_target": "NVIDIA GeForce RTX 3050",
-        "vrikshasana_gpu_model_loaded": vrikshasana_gpu_model is not None,
+        "execution_provider": VRIKSHASANA_PROVIDER,
+        "warmup_ms": VRIKSHASANA_WARMUP_MS,
+        "target_fps_capable": round(1000.0 / max(VRIKSHASANA_WARMUP_MS or 20.0, 0.01), 1),
+        "vram": vram,
+        "vrikshasana_gpu_model_loaded": vrikshasana_runner is not None,
         "biomechanics_loaded": bool(biomechanics_data),
         "dataset_verified_images": 8000,
         "target_pose": "Vrikshasana (Tree Pose)"
@@ -475,16 +627,18 @@ def vrikshasana_analyze():
       - 'landmarks': 33 MediaPipe pose landmarks (x, y, z, visibility)
       - 'image' (optional): base64 video frame for RTX 3050 GPU classification
     """
+    t_req0 = time.perf_counter()
     data = request.get_json(silent=True) or {}
     landmarks = data.get("landmarks", [])
     data_url = data.get("image", None)
 
     gpu_prob = None
-    if data_url and vrikshasana_gpu_model:
+    gpu_ms = None
+    if data_url and vrikshasana_runner:
         try:
-            pil = dataurl_to_pil(data_url).resize(IMG_SIZE, Image.BILINEAR)
-            arr = np.expand_dims(np.array(pil, dtype=np.float32) / 255.0, 0)
-            pred = vrikshasana_gpu_model.predict(arr, verbose=0)
+            raw_bytes = decode_dataurl_bytes(data_url)
+            arr = decode_rgb_batch(raw_bytes, size=IMG_SIZE, scale=1.0 / 255.0)
+            pred, gpu_ms = infer_gpu_batch(vrikshasana_runner, arr)
             gpu_prob = float(pred[0][0])
         except Exception as e:
             print("GPU frame prediction error:", e)
@@ -493,10 +647,18 @@ def vrikshasana_analyze():
     result = evaluate_vrikshasana(landmarks, gpu_prob=gpu_prob)
     if gpu_prob is not None:
         result["gpu_confidence"] = round(gpu_prob * 100, 1)
+    if gpu_ms is not None:
+        result["gpu_inference_ms"] = gpu_ms
+        result["gpu_fps"] = round(1000.0 / max(gpu_ms, 0.01), 1)
+    result["server_total_ms"] = round((time.perf_counter() - t_req0) * 1000.0, 2)
+    result["execution_provider"] = VRIKSHASANA_PROVIDER
+    # Never spawn nvidia-smi subprocess on the real-time frame hot path; return last known snapshot only
+    result["vram"] = _VRAM_CACHE["data"]
 
     return jsonify(result)
 
 if __name__ == "__main__":
     print(f"\nYogashirini Python Backend — EfficientNetB0 ({NUM_CLASSES} classes)")
-    print("Starting on http://0.0.0.0:5000\n")
-    app.run(host="0.0.0.0", port=5000, debug=False)
+    print(f"GPU Pipeline: {EFFICIENTNET_PROVIDER} / {VRIKSHASANA_PROVIDER} | Threaded=True")
+    print("Starting on http://0.0.0.0:5000\n", flush=True)
+    app.run(host="0.0.0.0", port=5000, debug=False, threaded=True, use_reloader=False)

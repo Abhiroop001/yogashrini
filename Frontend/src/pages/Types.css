@@ -1,25 +1,28 @@
 /* Frontend/src/pages/Types.css
-   Modern Asana Compendium Directory
+   Compact Overflow-Safe Asana Compendium Directory
 */
 
 .types-page {
-  padding-bottom: 60px;
+  padding-bottom: 44px;
 }
 
 .types-pose-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 20px;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 290px), 1fr));
+  gap: 16px;
 }
 
 .types-pose-card {
   background: var(--bg-surface);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-lg);
-  padding: 18px;
+  padding: 16px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
+  min-width: 0;
+  width: 100%;
+  overflow: hidden;
   box-shadow: var(--card-shadow);
   transition: transform var(--transition-smooth), box-shadow var(--transition-smooth), border-color var(--transition-smooth);
 }
@@ -31,10 +34,10 @@
 }
 
 .types-img-wrap {
-  width: 76px;
-  height: 76px;
+  width: 68px;
+  height: 68px;
   border-radius: var(--radius-md);
-  background: var(--bg-surface);
+  background: var(--bg-secondary);
   border: 1px solid var(--border-subtle);
   overflow: hidden;
   display: flex;
@@ -56,13 +59,13 @@
   transform: scale(1.08);
 }
 
-/* Invert black SVG paths in Dark Mode so they render in clean white */
+/* Invert black SVG paths in Dark Mode so they render in crisp white */
 body[data-theme="dark"] .types-pose-img {
   filter: invert(0.95) hue-rotate(180deg);
 }
 
 @media (max-width: 600px) {
   .types-pose-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 }

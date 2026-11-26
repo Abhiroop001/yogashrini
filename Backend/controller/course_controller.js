@@ -1,5 +1,7 @@
+// Server/controller/course_controller.js
 const Course = require("../db/coursedb");
 const Week   = require("../db/weekdb");
+const Enrollment = require("../db/enrollmentdb");
 const mongoose = require("mongoose");
 const path   = require("path");
 const fs     = require("fs");
@@ -12,10 +14,11 @@ if (!fs.existsSync(videoDir)) fs.mkdirSync(videoDir, { recursive: true });
 
 /* ─── COURSES ───────────────────────────────────────────────────── */
 
-// GET /course — list all (published for frontend, all for admin)
+// GET /course — list published for public, all only for authenticated admins
 exports.listCourses = async (req, res) => {
   try {
-    const filter = req.query.all === "true" ? {} : { isPublished: true };
+    const isAdmin = req.user && req.user.role === "admin";
+    const filter = req.query.all === "true" && isAdmin ? {} : { isPublished: true };
     const courses = await Course.find(filter).sort({ createdAt: -1 });
     res.json({ courses });
   } catch (e) {
@@ -31,6 +34,9 @@ exports.getCourse = async (req, res) => {
     }
     const course = await Course.findById(req.params.id);
     if (!course) return res.status(404).json({ error: "Course not found" });
+    if (!course.isPublished && (!req.user || req.user.role !== "admin")) {
+      return res.status(404).json({ error: "Course not found" });
+    }
     res.json({ course });
   } catch (e) {
     res.status(500).json({ error: e.message });
@@ -41,25 +47,31 @@ exports.getCourse = async (req, res) => {
 exports.createCourse = async (req, res) => {
   try {
     const { title, description, price, totalWeeks, level, instructor, isPublished } = req.body;
+    if (!title || !String(title).trim()) {
+      return res.status(400).json({ error: "Course title is required" });
+    }
 
     let thumbnailFilename = "";
     if (req.files && req.files.thumbnail) {
       const thumb = req.files.thumbnail;
-      thumbnailFilename = Date.now() + "_" + thumb.name.replace(/\s/g, "_");
+      const safeName = path.basename(thumb.name).replace(/[^a-zA-Z0-9._-]/g, "_");
+      thumbnailFilename = Date.now() + "_" + safeName;
       await thumb.mv(path.join(thumbDir, thumbnailFilename));
     }
 
     const course = new Course({
-      title, description,
-      price: Number(price) || 0,
-      totalWeeks: Number(totalWeeks) || 1,
-      level, instructor,
+      title: String(title).trim(),
+      description: description || "",
+      price: Math.max(0, Number(price) || 0),
+      totalWeeks: Math.max(1, Number(totalWeeks) || 1),
+      level: level || "Beginner",
+      instructor: instructor || "Yogashrini Faculty",
       isPublished: isPublished === "true" || isPublished === true,
       thumbnail: thumbnailFilename,
     });
 
     await course.save();
-    res.json({ message: "Course created", course });
+    res.status(201).json({ message: "Course created", course });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
@@ -68,15 +80,20 @@ exports.createCourse = async (req, res) => {
 // PUT /course/:id — admin updates course
 exports.updateCourse = async (req, res) => {
   try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ error: "Invalid course ID format" });
+    }
+
     const updates = { ...req.body };
-    if (updates.price)      updates.price      = Number(updates.price);
-    if (updates.totalWeeks) updates.totalWeeks = Number(updates.totalWeeks);
+    if (updates.price !== undefined)      updates.price      = Math.max(0, Number(updates.price) || 0);
+    if (updates.totalWeeks !== undefined) updates.totalWeeks = Math.max(1, Number(updates.totalWeeks) || 1);
     if (updates.isPublished !== undefined)
       updates.isPublished = updates.isPublished === "true" || updates.isPublished === true;
 
     if (req.files && req.files.thumbnail) {
       const thumb = req.files.thumbnail;
-      const thumbnailFilename = Date.now() + "_" + thumb.name.replace(/\s/g, "_");
+      const safeName = path.basename(thumb.name).replace(/[^a-zA-Z0-9._-]/g, "_");
+      const thumbnailFilename = Date.now() + "_" + safeName;
       await thumb.mv(path.join(thumbDir, thumbnailFilename));
       updates.thumbnail = thumbnailFilename;
     }
@@ -92,6 +109,9 @@ exports.updateCourse = async (req, res) => {
 // DELETE /course/:id
 exports.deleteCourse = async (req, res) => {
   try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ error: "Invalid course ID format" });
+    }
     await Course.findByIdAndDelete(req.params.id);
     await Week.deleteMany({ courseId: req.params.id });
     res.json({ message: "Course deleted" });
@@ -102,11 +122,44 @@ exports.deleteCourse = async (req, res) => {
 
 /* ─── WEEKS ─────────────────────────────────────────────────────── */
 
-// GET /course/:id/weeks
+// GET /course/:id/weeks — returns syllabus; strips video filenames unless enrolled or admin or free
 exports.listWeeks = async (req, res) => {
   try {
-    const weeks = await Week.find({ courseId: req.params.id }).sort({ weekNumber: 1 });
-    res.json({ weeks });
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ error: "Invalid course ID format" });
+    }
+
+    const course = await Course.findById(req.params.id);
+    if (!course) return res.status(404).json({ error: "Course not found" });
+
+    let canWatchVideos = false;
+    if (req.user && req.user.role === "admin") {
+      canWatchVideos = true;
+    } else if (Number(course.price) === 0 && req.user) {
+      // Free course still requires signed-in student or explicit check
+      const enrollment = await Enrollment.findOne({ userId: String(req.user.id), courseId: course._id, isPaid: true });
+      canWatchVideos = Boolean(enrollment) || true;
+    } else if (req.user) {
+      const enrollment = await Enrollment.findOne({ userId: String(req.user.id), courseId: course._id, isPaid: true });
+      canWatchVideos = Boolean(enrollment);
+    }
+
+    const rawWeeks = await Week.find({ courseId: req.params.id }).sort({ weekNumber: 1 });
+    const weeks = rawWeeks.map((w) => {
+      const obj = w.toObject();
+      obj.videos = (obj.videos || []).map((v) => ({
+        _id: v._id,
+        title: v.title,
+        description: v.description,
+        duration: v.duration,
+        order: v.order,
+        locked: !canWatchVideos,
+        ...(canWatchVideos ? { filename: v.filename } : {}),
+      }));
+      return obj;
+    });
+
+    res.json({ weeks, authorized: canWatchVideos });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
@@ -115,16 +168,19 @@ exports.listWeeks = async (req, res) => {
 // POST /course/:id/week — admin adds a week
 exports.addWeek = async (req, res) => {
   try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ error: "Invalid course ID format" });
+    }
     const { weekNumber, title, description, bonusXP, bonusPoints, isBonus } = req.body;
     const videos = [];
 
     if (req.files) {
-      // Support multiple files: video0, video1, video2, ...
       const fileKeys = Object.keys(req.files).filter(k => k.startsWith("video"));
       let idx = 0;
       for (const key of fileKeys) {
         const vid = req.files[key];
-        const filename = Date.now() + "_" + idx + "_" + vid.name.replace(/\s/g, "_");
+        const safeName = path.basename(vid.name).replace(/[^a-zA-Z0-9._-]/g, "_");
+        const filename = Date.now() + "_" + idx + "_" + safeName;
         await vid.mv(path.join(videoDir, filename));
         const meta = JSON.parse(req.body[`videoMeta_${idx}`] || "{}");
         videos.push({
@@ -149,13 +205,13 @@ exports.addWeek = async (req, res) => {
     });
 
     await week.save();
-    res.json({ message: "Week added", week });
+    res.status(201).json({ message: "Week added", week });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
 };
 
-// PUT /course/:courseId/week/:weekId — update week metadata (no new video upload here)
+// PUT /course/:courseId/week/:weekId — admin updates week metadata
 exports.updateWeek = async (req, res) => {
   try {
     const { title, description, bonusXP, bonusPoints, isBonus } = req.body;

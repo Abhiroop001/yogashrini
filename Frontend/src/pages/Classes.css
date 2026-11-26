@@ -1,40 +1,30 @@
 /* Frontend/src/pages/Classes.css
-   Modern Responsive Yoga Class Schedule
-   Strict Zero Emojis - WCAG AA Contrast Compliant
+   Compact Responsive Yoga Class Schedule
 */
 
 .classes-page-container {
-  padding-bottom: 60px;
-}
-
-.classes-hero {
-  margin-bottom: 24px;
+  padding-bottom: 44px;
 }
 
 .day-filter-bar {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 8px;
-  overflow-x: auto;
-  padding-bottom: 8px;
-  margin-bottom: 24px;
-}
-
-.day-filter-bar::-webkit-scrollbar {
-  height: 4px;
+  margin-bottom: 20px;
 }
 
 .schedule-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-  gap: 20px;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr));
+  gap: 18px;
 }
 
 .schedule-card {
   background: var(--bg-surface);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-lg);
-  padding: 20px;
+  padding: 18px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -52,22 +42,22 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 12px;
+  margin-bottom: 10px;
 }
 
 .schedule-card-title {
-  font-size: 1.15rem;
+  font-size: 1.06rem;
   font-weight: 700;
-  margin-bottom: 12px;
+  margin-bottom: 10px;
   color: var(--heading-color);
 }
 
 .schedule-meta-list {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  margin-bottom: 18px;
-  font-size: 0.88rem;
+  gap: 6px;
+  margin-bottom: 14px;
+  font-size: 0.85rem;
   color: var(--text-secondary);
 }
 
@@ -78,15 +68,9 @@
 }
 
 .schedule-card-footer {
-  padding-top: 14px;
+  padding-top: 12px;
   border-top: 1px solid var(--border-subtle);
   display: flex;
   align-items: center;
   justify-content: space-between;
-}
-
-@media (max-width: 600px) {
-  .schedule-grid {
-    grid-template-columns: 1fr;
-  }
 }

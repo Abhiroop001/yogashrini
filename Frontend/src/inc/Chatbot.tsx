@@ -5,6 +5,9 @@
 import React, { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import "./Chatbot.css";
+import MarkdownView from "../components/MarkdownView";
+import { authFetch } from "../utils/api";
+import { AIChatImage } from "../types";
 import {
   MdChat,
   MdClose,
@@ -20,14 +23,15 @@ interface ChatMessage {
   from: "user" | "bot";
   text: string;
   sources?: string[];
+  images?: AIChatImage[];
   engine?: string;
 }
 
 const QUICK_PROMPTS = [
   "Vrikshasana alignment cues",
-  "Downward-Facing Dog benefits",
-  "Child's Pose contraindications",
-  "Yogashrini 6-week syllabus"
+  "Show Downward-Facing Dog image",
+  "Best yoga and diet for weight loss",
+  "Show Vajrasana posture image"
 ];
 
 const Chatbot: React.FC = () => {
@@ -64,9 +68,8 @@ const Chatbot: React.FC = () => {
         text: m.text
       }));
 
-      const resp = await fetch("http://localhost:2000/ai/chat", {
+      const resp = await authFetch("/ai/chat", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           message: textToSend,
           history: historyPayload
@@ -80,6 +83,7 @@ const Chatbot: React.FC = () => {
       const data = await resp.json();
       const botReply = data.data?.reply || data.reply || "I could not retrieve an authoritative response at this moment.";
       const sources = data.data?.sources?.map((s: any) => s.title || s) || data.sources || ["Yogashrini Knowledge Base"];
+      const images: AIChatImage[] = data.data?.images || data.images || [];
 
       setMessages(prev => [
         ...prev,
@@ -87,7 +91,8 @@ const Chatbot: React.FC = () => {
           from: "bot",
           text: botReply,
           sources: sources,
-          engine: data.data?.provider || "Groq RAG"
+          images,
+          engine: data.engine?.provider || "Groq RAG"
         }
       ]);
     } catch {
@@ -206,8 +211,40 @@ const Chatbot: React.FC = () => {
                   </div>
                   <div className="chatbot-msg-bubble">
                     <div className="chatbot-msg-content">
-                      {renderMessageText(msg.text)}
+                      {msg.from === "bot" ? (
+                        <MarkdownView content={msg.text} compact />
+                      ) : (
+                        renderMessageText(msg.text)
+                      )}
                     </div>
+                    {msg.images && msg.images.length > 0 && (
+                      <div className="chatbot-images-grid">
+                        {msg.images.map((img, iIdx) => (
+                          <figure key={iIdx} className="chatbot-asana-card">
+                            <img
+                              src={img.imageUrl}
+                              alt={img.title || img.englishName || "Asana illustration"}
+                              loading="lazy"
+                              className="chatbot-asana-img"
+                              onError={(e) => {
+                                const fig = e.currentTarget.closest("figure");
+                                if (fig) fig.style.display = "none";
+                              }}
+                            />
+                            <figcaption className="chatbot-asana-caption">
+                              <span className="fw-bold d-block">{img.title}</span>
+                              <span className="chatbot-asana-source">
+                                {img.source === "huggingface"
+                                  ? "Hugging Face AI"
+                                  : img.source === "canonical"
+                                  ? "Canonical Posture"
+                                  : "Anatomical Guide"}
+                              </span>
+                            </figcaption>
+                          </figure>
+                        ))}
+                      </div>
+                    )}
                     {msg.sources && msg.sources.length > 0 && (
                       <div className="chatbot-msg-sources">
                         <MdMenuBook size={12} />

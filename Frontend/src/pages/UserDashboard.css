@@ -4,13 +4,13 @@
 */
 
 .ud-page-wrapper {
-  padding-bottom: 60px;
+  padding-bottom: 40px;
 }
 
-/* ── Split Hero Section ─────────────────────────────────────────────────── */
+/* ── Compact Split Hero Section ─────────────────────────────────────────── */
 .ud-hero-section {
-  padding: clamp(24px, 5vw, 48px) 0;
-  margin-bottom: 24px;
+  padding: clamp(18px, 3vw, 32px) 0;
+  margin-bottom: 18px;
   background: linear-gradient(135deg, var(--bg-surface) 0%, var(--bg-secondary) 100%);
   border-bottom: 1px solid var(--border-subtle);
 }
@@ -218,8 +218,9 @@
   background: var(--bg-secondary);
   border: 1px solid var(--border-prominent);
   border-radius: var(--radius-md);
-  padding: 14px;
-  overflow: hidden;
+  padding: 12px 14px;
+  overflow-y: auto;
+  max-height: 290px;
 }
 
 .ud-code-block {
@@ -393,5 +394,131 @@
     max-height: 94vh;
     border-bottom-left-radius: 0;
     border-bottom-right-radius: 0;
+  }
+  .ud-tracker-asana-card {
+    flex-direction: column;
+  }
+  .ud-tracker-asana-thumb {
+    width: 100%;
+    height: 120px;
+  }
+}
+
+/* ── Weight / Height Daily Routine Tracker & Print Rules ─────────────────── */
+.ud-tracker-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 170px), 1fr));
+  gap: 10px;
+}
+
+.ud-tracker-kpi {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ud-tracker-kpi-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.ud-schedule-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  cursor: pointer;
+  width: 100%;
+  transition: border-color 0.2s, background 0.2s;
+}
+
+.ud-schedule-row:hover {
+  border-color: var(--brand-primary);
+}
+
+.ud-schedule-row.is-done {
+  opacity: 0.76;
+  border-color: rgba(16, 185, 129, 0.45);
+}
+
+.ud-schedule-row.is-done .fw-bold {
+  text-decoration: line-through;
+}
+
+.ud-tracker-asana-card {
+  display: flex;
+  gap: 12px;
+  padding: 12px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+}
+
+.ud-tracker-asana-thumb {
+  width: 112px;
+  height: 112px;
+  flex-shrink: 0;
+  background: #FAF9F6;
+  border-radius: 10px;
+  border: 1px solid var(--border-prominent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  padding: 6px;
+}
+
+.ud-tracker-asana-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+}
+
+.ud-tracker-print-only-expand {
+  display: none;
+}
+
+.ud-print-banner {
+  display: none;
+}
+
+@media print {
+  body.printing-daily-tracker .yoga-navbar-root,
+  body.printing-daily-tracker .chatbot-floating-toggle,
+  body.printing-daily-tracker .chatbot-window-container,
+  body.printing-daily-tracker .yoga-global-footer,
+  body.printing-daily-tracker .ud-hero-section,
+  body.printing-daily-tracker .ud-ai-suite-banner,
+  body.printing-daily-tracker .ud-hide-on-print {
+    display: none !important;
+  }
+
+  body.printing-daily-tracker .ud-page-wrapper .ud-card:not(.ud-tracker-card) {
+    display: none !important;
+  }
+
+  body.printing-daily-tracker .ud-tracker-card {
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+    color: #111827 !important;
+  }
+
+  body.printing-daily-tracker .ud-tracker-print-only-expand,
+  body.printing-daily-tracker .ud-print-banner {
+    display: block !important;
   }
 }

@@ -1,8 +1,9 @@
-// src/pages/Login.tsx
-import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+// Frontend/src/pages/Login.tsx
+import React, { useState, useEffect } from "react";
+import { useNavigate, useLocation, Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "../AuthContext";
+import { API_BASE } from "../utils/api";
 import { GiLotus } from "react-icons/gi";
 import {
   MdEmail,
@@ -14,10 +15,10 @@ import {
   MdVisibilityOff,
   MdCheckCircle,
   MdErrorOutline,
+  MdLogout,
+  MdArrowForward,
 } from "react-icons/md";
 import "./Login.css";
-
-const API = "http://localhost:2000";
 
 interface ToastState {
   type: "ok" | "err";
@@ -25,8 +26,10 @@ interface ToastState {
 }
 
 export const Login: React.FC = () => {
-  const { login } = useAuth();
+  const { login, logout, isAuthenticated, user } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const redirectTarget = (location.state as { from?: string } | null)?.from || "/";
 
   const [mode, setMode] = useState<"login" | "register">("login");
   const [loading, setLoading] = useState<boolean>(false);
@@ -40,6 +43,12 @@ export const Login: React.FC = () => {
     confirm: "",
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    if (location.pathname === "/signup") {
+      setMode("register");
+    }
+  }, [location.pathname]);
 
   const field = (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm((f) => ({ ...f, [e.target.name]: e.target.value }));
@@ -74,7 +83,7 @@ export const Login: React.FC = () => {
         : { name: form.name, email: form.email, password: form.password };
 
     try {
-      const res = await fetch(`${API}${endpoint}`, {
+      const res = await fetch(`${API_BASE}${endpoint}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
@@ -88,7 +97,7 @@ export const Login: React.FC = () => {
 
       login(data.token, data.user);
       showToast("ok", data.msg || (mode === "login" ? "Welcome back!" : "Account created successfully!"));
-      setTimeout(() => navigate("/"), 1200);
+      setTimeout(() => navigate(redirectTarget, { replace: true }), 800);
     } catch {
       showToast("err", "Cannot connect to server. Make sure the backend is active on port 2000.");
     } finally {
@@ -102,6 +111,30 @@ export const Login: React.FC = () => {
     setForm({ name: "", email: "", password: "", confirm: "" });
   };
 
+  if (isAuthenticated && user && !toast) {
+    return (
+      <div className="login-page-wrapper">
+        <motion.div
+          className="login-card-container text-center p-4"
+          initial={{ opacity: 0, scale: 0.96 }}
+          animate={{ opacity: 1, scale: 1 }}
+        >
+          <GiLotus size={44} style={{ color: "var(--brand-primary)" }} className="mb-2" />
+          <h2 className="fs-4 fw-bold mb-1">Signed in as {user.name}</h2>
+          <p className="text-secondary small mb-4">{user.email}</p>
+          <div className="d-flex flex-column gap-2">
+            <Link to={redirectTarget} className="btn btn-primary w-100">
+              Continue Practice <MdArrowForward size={16} />
+            </Link>
+            <button type="button" onClick={logout} className="btn btn-secondary w-100">
+              <MdLogout size={16} /> Switch Account / Sign Out
+            </button>
+          </div>
+        </motion.div>
+      </div>
+    );
+  }
+
   return (
     <div className="login-page-wrapper">
       <motion.div
@@ -112,13 +145,13 @@ export const Login: React.FC = () => {
       >
         {/* Header */}
         <div className="login-card-header">
-          <GiLotus size={48} style={{ color: "var(--brand-primary)" }} className="mb-2" />
+          <GiLotus size={44} style={{ color: "var(--brand-primary)" }} className="mb-2" />
           <h2 className="fs-4 fw-bold mb-1">
             {mode === "login" ? "Welcome to Yogashrini" : "Begin Your Journey"}
           </h2>
           <p className="text-secondary small m-0">
             {mode === "login"
-              ? "Sign in to access your practice curriculum and dashboard."
+              ? "Sign in to access your practice curriculum and enrollments."
               : "Register to track posture progress and unlock video modules."}
           </p>
         </div>
@@ -152,11 +185,14 @@ export const Login: React.FC = () => {
                 exit={{ opacity: 0, height: 0 }}
                 className="login-input-group"
               >
+                <label htmlFor="auth-name" className="visually-hidden">Full Name</label>
                 <MdPerson className="login-input-icon" size={18} />
                 <input
+                  id="auth-name"
                   type="text"
                   name="name"
                   placeholder="Full Name"
+                  autoComplete="name"
                   className="login-input"
                   value={form.name}
                   onChange={field}
@@ -167,8 +203,10 @@ export const Login: React.FC = () => {
           </AnimatePresence>
 
           <div className="login-input-group">
+            <label htmlFor="auth-email" className="visually-hidden">Email Address</label>
             <MdEmail className="login-input-icon" size={18} />
             <input
+              id="auth-email"
               type="email"
               name="email"
               placeholder="Email Address"
@@ -181,8 +219,10 @@ export const Login: React.FC = () => {
           </div>
 
           <div className="login-input-group">
+            <label htmlFor="auth-password" className="visually-hidden">Password</label>
             <MdLock className="login-input-icon" size={18} />
             <input
+              id="auth-password"
               type={showPwd ? "text" : "password"}
               name="password"
               placeholder="Password (min 6 characters)"
@@ -195,7 +235,7 @@ export const Login: React.FC = () => {
               type="button"
               className="login-pwd-toggle"
               onClick={() => setShowPwd(!showPwd)}
-              tabIndex={-1}
+              aria-label={showPwd ? "Hide password" : "Show password"}
             >
               {showPwd ? <MdVisibilityOff size={18} /> : <MdVisibility size={18} />}
             </button>
@@ -211,8 +251,10 @@ export const Login: React.FC = () => {
                 exit={{ opacity: 0, height: 0 }}
                 className="login-input-group"
               >
+                <label htmlFor="auth-confirm" className="visually-hidden">Confirm Password</label>
                 <MdLock className="login-input-icon" size={18} />
                 <input
+                  id="auth-confirm"
                   type={showPwd ? "text" : "password"}
                   name="confirm"
                   placeholder="Confirm Password"
@@ -226,7 +268,6 @@ export const Login: React.FC = () => {
             )}
           </AnimatePresence>
 
-          {/* Toast Notification */}
           <AnimatePresence>
             {toast && (
               <motion.div

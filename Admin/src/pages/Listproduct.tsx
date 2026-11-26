@@ -6,18 +6,20 @@ import Top from "../inc/Top";
 import Footer from "../inc/Footer";
 import { MdAdd, MdEdit, MdDelete, MdSpa, MdSearch, MdShoppingBag, MdRefresh } from "react-icons/md";
 import { Product } from "../types";
-
-const API = "http://localhost:2000";
+import { adminFetch, API_BASE as API } from "../utils/api";
 
 interface OrderItem {
   _id: string;
   productName: string;
   productPrice: number;
   quantity: number;
+  totalAmount?: number;
   customerName: string;
   customerPhone: string;
   customerEmail?: string;
   address?: string;
+  paymentMethod?: string;
+  isPaid?: boolean;
   status?: string;
   createdAt?: string;
 }
@@ -35,7 +37,7 @@ export const Listproduct: React.FC = () => {
   const getdata = useCallback(async () => {
     try {
       setLoading(true);
-      const resp = await fetch(`${API}/product/sel`);
+      const resp = await adminFetch("/product/sel");
       if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
       const data = await resp.json();
       setProducts(Array.isArray(data) ? data : []);
@@ -49,7 +51,7 @@ export const Listproduct: React.FC = () => {
   const getOrders = useCallback(async () => {
     try {
       setOrdersLoading(true);
-      const resp = await fetch(`${API}/product/orders`);
+      const resp = await adminFetch("/product/orders");
       if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
       const data = await resp.json();
       setOrders(Array.isArray(data) ? data : []);
@@ -70,7 +72,7 @@ export const Listproduct: React.FC = () => {
     const fd = new FormData();
     fd.append("id", id);
     try {
-      const resp = await fetch(`${API}/product/del`, { method: "POST", body: fd });
+      const resp = await adminFetch("/product/del", { method: "POST", body: fd });
       if (!resp.ok) {
         const data = await resp.json().catch(() => ({}));
         throw new Error(data.error || "Failed to delete product");
@@ -86,7 +88,7 @@ export const Listproduct: React.FC = () => {
 
   const handleUpdateOrderStatus = async (orderId: string, newStatus: string) => {
     try {
-      const resp = await fetch(`${API}/product/order-status`, {
+      const resp = await adminFetch("/product/order-status", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id: orderId, status: newStatus }),
@@ -178,23 +180,13 @@ export const Listproduct: React.FC = () => {
                   <MdSpa /> Active Inventory
                 </div>
                 <div style={{ display: "flex", gap: 12 }}>
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 8,
-                      background: "#f4f5fa",
-                      borderRadius: 8,
-                      padding: "6px 12px",
-                      border: "1px solid #e5e7eb",
-                    }}
-                  >
-                    <MdSearch style={{ color: "#9ca3af" }} />
+                  <div className="admin-search-box">
+                    <MdSearch style={{ color: "var(--text-muted)" }} />
                     <input
                       value={search}
                       onChange={(e) => setSearch(e.target.value)}
                       placeholder="Search gear..."
-                      style={{ border: "none", background: "transparent", outline: "none", fontSize: 13, width: 140 }}
+                      style={{ width: 140 }}
                     />
                   </div>
                 </div>
@@ -229,9 +221,9 @@ export const Listproduct: React.FC = () => {
                         <tr key={p._id}>
                           <td>
                             <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                              {p.pimage ? (
+                              {(p.pimg || p.pimage) ? (
                                 <img
-                                  src={`${API}/uploads/${p.pimage}`}
+                                  src={`${API}/product_img/${p.pimg || p.pimage}`}
                                   alt={p.pname}
                                   className="thumb-preview"
                                 />
@@ -239,11 +231,11 @@ export const Listproduct: React.FC = () => {
                                 <div
                                   className="thumb-preview"
                                   style={{
-                                    background: "#f3f4f6",
+                                    background: "var(--surface-subtle)",
                                     display: "flex",
                                     alignItems: "center",
                                     justifyContent: "center",
-                                    color: "#9ca3af",
+                                    color: "var(--text-muted)",
                                   }}
                                 >
                                   <MdSpa size={24} />
@@ -319,7 +311,24 @@ export const Listproduct: React.FC = () => {
                         <tr key={o._id}>
                           <td>
                             <strong>{o.productName}</strong>
-                            <div style={{ fontSize: 12, color: "#9ca3af" }}>INR {o.productPrice}</div>
+                            <div style={{ fontSize: 12, color: "var(--text-muted)" }}>
+                              INR {o.totalAmount ?? o.productPrice * (o.quantity || 1)}
+                              {o.paymentMethod && (
+                                <span
+                                  style={{
+                                    marginLeft: 8,
+                                    padding: "1px 6px",
+                                    borderRadius: 6,
+                                    fontSize: 10,
+                                    fontWeight: 700,
+                                    background: o.isPaid ? "rgba(16, 185, 129, 0.14)" : "rgba(245, 158, 11, 0.14)",
+                                    color: o.isPaid ? "#10b981" : "#f59e0b",
+                                  }}
+                                >
+                                  {o.paymentMethod === "Razorpay" ? (o.isPaid ? "Paid Online" : "Unpaid") : "COD"}
+                                </span>
+                              )}
+                            </div>
                           </td>
                           <td>{o.quantity}</td>
                           <td>

@@ -15,6 +15,7 @@ export interface AuthContextType {
   login: (token: string, user: User) => void;
   logout: () => void;
   isAuthenticated: boolean;
+  isLoading?: boolean;
 }
 
 export interface PoseItem {
@@ -69,11 +70,99 @@ export interface AISource {
   category?: string;
 }
 
+export interface AIChatImage {
+  englishName?: string;
+  sanskritName?: string;
+  title: string;
+  imageUrl: string;
+  source?: string;
+  caption?: string;
+  hfNote?: string;
+}
+
 export interface AIChatMessage {
   sender: "user" | "bot";
   text: string;
   sources?: AISource[];
+  images?: AIChatImage[];
   timestamp?: string;
+}
+
+export interface RoutineTrackerMetrics {
+  weightKg: number;
+  heightCm: number;
+  age: number;
+  sex: string;
+  bmi: number;
+  globalBmiCategory: string;
+  asianBmiCategory: string;
+  bmr: number;
+  tdee: number;
+  targetCalories: number;
+  calorieFloor: number;
+  floorApplied: boolean;
+  calorieDeltaLabel: string;
+  macros: {
+    proteinG: number;
+    carbsG: number;
+    fatsG: number;
+    fiberG: number;
+    proteinPerKg: number;
+  };
+  metValue: number;
+  sessionCaloriesBurned: number;
+  hydrationLiters: number;
+  durationMinutes: number;
+  goal: string;
+  activityLevel: string;
+}
+
+export interface RoutineScheduleSlot {
+  id: string;
+  timeSlot: string;
+  blockTitle: string;
+  category: string;
+  details: string;
+  metric: string;
+}
+
+export interface RoutineMealPlanItem {
+  mealName: string;
+  timing: string;
+  calories: number;
+  proteinG: number;
+  items: string[];
+  rationale: string;
+}
+
+export interface RoutineAsanaItem {
+  sanskritName: string;
+  englishName: string;
+  phase: string;
+  duration: string;
+  caloriesEst: string;
+  alignmentCue: string;
+  benefit: string;
+  contraindication: string;
+  imageUrl: string;
+  imageSource?: string;
+  imageCaption?: string;
+}
+
+export interface DailyRoutineTrackerData {
+  studentName: string;
+  goalLabel: string;
+  dietPreference: string;
+  metrics: RoutineTrackerMetrics;
+  summary: string;
+  dailySchedule: RoutineScheduleSlot[];
+  dietPlan: RoutineMealPlanItem[];
+  recommendedAsanas: RoutineAsanaItem[];
+  nutritionTips: string[];
+  safetyNotes: string[];
+  citations: string[];
+  engine?: { model: string; provider: string };
+  generatedAt: string;
 }
 
 export interface ClinicalReportData {
@@ -137,6 +226,22 @@ export interface Course {
   totalWeeks?: number;
   weeks?: WeekModule[];
   enrolled?: boolean;
+}
+
+export interface EnrollmentRecord {
+  _id: string;
+  userId: string;
+  courseId: Course;
+  amount?: number;
+  currency?: string;
+  paymentMethod?: string;
+  isPaid: boolean;
+  completedWeeks: number[];
+  totalXP?: number;
+  totalPoints?: number;
+  bonusUnlocked?: boolean;
+  purchasedAt?: string;
+  regularWeeksAvailable?: number[];
 }
 
 export interface Retreat {

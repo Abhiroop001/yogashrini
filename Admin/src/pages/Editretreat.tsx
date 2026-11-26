@@ -6,8 +6,7 @@ import Top from "../inc/Top";
 import Footer from "../inc/Footer";
 import { MdSave, MdArrowBack } from "react-icons/md";
 import { RiMapPin2Line } from "react-icons/ri";
-
-const API = "http://localhost:2000";
+import { adminFetch } from "../utils/api";
 
 interface RetreatFormData {
   rname: string;
@@ -36,7 +35,7 @@ export const Editretreat: React.FC = () => {
     if (!id) return;
     const fd = new FormData();
     fd.append("id", id);
-    fetch(`${API}/retreat/edit`, { method: "POST", body: fd })
+    adminFetch("/retreat/edit", { method: "POST", body: fd })
       .then((r) => r.json())
       .then((data) => {
         setForm({
@@ -72,7 +71,7 @@ export const Editretreat: React.FC = () => {
     fd.append("rcost", form.rcost);
 
     try {
-      const r = await fetch(`${API}/retreat/upd`, { method: "POST", body: fd });
+      const r = await adminFetch("/retreat/upd", { method: "POST", body: fd });
       if (r.ok) {
         setMsg({ type: "success", text: "Retreat details updated" });
         setTimeout(() => nav("/listretreat"), 1200);

@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import Footer from "../inc/Footer";
 import Sidebar from "../inc/Sidebar";
 import Top from "../inc/Top";
+import { adminFetch } from "../utils/api";
 import {
   MdSchool,
   MdPeople,
@@ -36,7 +37,6 @@ import {
 } from "recharts";
 import { ProductStats } from "../types";
 
-const API = "http://localhost:2000";
 
 interface AIRecommendation {
   category: string;
@@ -128,7 +128,7 @@ export const Dashboard: React.FC = () => {
     setLoadingBriefing(true);
     setBriefingError("");
     try {
-      const res = await fetch(`${API}/ai/admin-executive-briefing`);
+      const res = await adminFetch("/ai/admin-executive-briefing");
       const data = await res.json();
       if (data.success) {
         setBriefing(data.data);
@@ -143,17 +143,17 @@ export const Dashboard: React.FC = () => {
   };
 
   useEffect(() => {
-    fetch(`${API}/payment/enrollment/stats`)
+    adminFetch("/payment/enrollment/stats")
       .then((r) => r.json())
       .then((d) => setStats(d))
       .catch(() => {});
 
-    fetch(`${API}/course?all=true`)
+    adminFetch("/course?all=true")
       .then((r) => r.json())
       .then((d) => setCourseCount(d.courses?.length || 0))
       .catch(() => {});
 
-    fetch(`${API}/product/stats`)
+    adminFetch("/product/stats")
       .then((r) => r.json())
       .then((d) => setProductStats(d))
       .catch(() => {});
@@ -335,11 +335,11 @@ export const Dashboard: React.FC = () => {
             <div style={{ marginBottom: 28 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
                 <MdLightbulb style={{ color: "#7C3AED", fontSize: 20 }} />
-                <h3 style={{ fontSize: 16, fontWeight: 700, color: "#1f2937", margin: 0 }}>
+                <h3 style={{ fontSize: 16, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>
                   Prescriptive Growth & Pedagogical Directives
                 </h3>
               </div>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 16 }}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 280px), 1fr))", gap: 16 }}>
                 {briefing.aiRecommendations.map((rec, idx) => (
                   <motion.div
                     key={idx}
@@ -361,7 +361,7 @@ export const Dashboard: React.FC = () => {
                         marginBottom: 8,
                       }}
                     >
-                      <span style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", color: "#6b7280" }}>
+                      <span style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", color: "var(--text-muted)" }}>
                         {rec.category}
                       </span>
                       <span
@@ -370,17 +370,17 @@ export const Dashboard: React.FC = () => {
                           fontWeight: 700,
                           padding: "2px 8px",
                           borderRadius: 12,
-                          background: rec.priority === "HIGH" ? "#fee2e2" : "#ede9fe",
-                          color: rec.priority === "HIGH" ? "#b91c1c" : "#6d28d9",
+                          background: rec.priority === "HIGH" ? "rgba(239, 68, 68, 0.16)" : "rgba(124, 58, 237, 0.16)",
+                          color: rec.priority === "HIGH" ? "#ef4444" : "#a78bfa",
                         }}
                       >
                         {rec.priority} PRIORITY
                       </span>
                     </div>
-                    <div style={{ fontWeight: 600, fontSize: 14, color: "#111827", marginBottom: 6 }}>
+                    <div style={{ fontWeight: 600, fontSize: 14, color: "var(--text-primary)", marginBottom: 6 }}>
                       {rec.recommendation}
                     </div>
-                    <div style={{ fontSize: 12, color: "#4b5563", marginBottom: 10, lineHeight: 1.4 }}>
+                    <div style={{ fontSize: 12, color: "var(--text-secondary)", marginBottom: 10, lineHeight: 1.4 }}>
                       {rec.rationale}
                     </div>
                     <div
@@ -417,11 +417,11 @@ export const Dashboard: React.FC = () => {
                     fontFamily: "inherit",
                     fontSize: 13,
                     lineHeight: 1.7,
-                    color: "#374151",
-                    background: "#f8fafc",
+                    color: "var(--text-primary)",
+                    background: "var(--surface-subtle)",
                     padding: "18px 20px",
                     borderRadius: 8,
-                    border: "1px solid #e2e8f0",
+                    border: "1px solid var(--border)",
                   }}
                 >
                   {briefing.executiveSummary}
@@ -499,7 +499,7 @@ export const Dashboard: React.FC = () => {
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(380px, 1fr))",
+              gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 300px), 1fr))",
               gap: 20,
               marginBottom: 28,
             }}
@@ -522,10 +522,10 @@ export const Dashboard: React.FC = () => {
                           <stop offset="95%" stopColor="#7C3AED" stopOpacity={0} />
                         </linearGradient>
                       </defs>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(148, 163, 184, 0.18)" />
                       <XAxis dataKey="month" fontSize={12} tick={{ fill: "#9ca3af" }} />
                       <YAxis fontSize={12} tick={{ fill: "#9ca3af" }} />
-                      <Tooltip contentStyle={{ borderRadius: 8, border: "1px solid #e5e7eb", fontSize: 12 }} />
+                      <Tooltip contentStyle={{ borderRadius: 8, border: "1px solid var(--border)", backgroundColor: "var(--card-bg)", color: "var(--text-primary)", fontSize: 12 }} />
                       <Area
                         type="monotone"
                         dataKey="enrollments"
@@ -551,10 +551,10 @@ export const Dashboard: React.FC = () => {
                 <div className="chart-wrapper" style={{ height: "260px" }}>
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={courseProgressData} barSize={28}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(148, 163, 184, 0.18)" />
                       <XAxis dataKey="week" fontSize={12} tick={{ fill: "#9ca3af" }} />
                       <YAxis fontSize={12} tick={{ fill: "#9ca3af" }} />
-                      <Tooltip contentStyle={{ borderRadius: 8, border: "1px solid #e5e7eb", fontSize: 12 }} />
+                      <Tooltip contentStyle={{ borderRadius: 8, border: "1px solid var(--border)", backgroundColor: "var(--card-bg)", color: "var(--text-primary)", fontSize: 12 }} />
                       <Bar dataKey="completions" fill="#10b981" radius={[6, 6, 0, 0]} />
                     </BarChart>
                   </ResponsiveContainer>
@@ -581,7 +581,7 @@ export const Dashboard: React.FC = () => {
                         <stop offset="95%" stopColor="#f59e0b" stopOpacity={0} />
                       </linearGradient>
                     </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(148, 163, 184, 0.18)" />
                     <XAxis dataKey="month" fontSize={12} tick={{ fill: "#9ca3af" }} />
                     <YAxis
                       fontSize={12}
@@ -590,7 +590,7 @@ export const Dashboard: React.FC = () => {
                     />
                     <Tooltip
                       formatter={(v) => [`INR ${v}`, "Revenue"]}
-                      contentStyle={{ borderRadius: 8, border: "1px solid #e5e7eb", fontSize: 12 }}
+                      contentStyle={{ borderRadius: 8, border: "1px solid var(--border)", backgroundColor: "var(--card-bg)", color: "var(--text-primary)", fontSize: 12 }}
                     />
                     <Area
                       type="monotone"
@@ -639,16 +639,16 @@ export const Dashboard: React.FC = () => {
                     key={title}
                     style={{
                       padding: "16px",
-                      background: "#fafbff",
+                      background: "var(--surface-subtle)",
                       borderRadius: 10,
-                      border: "1px solid #e5e7eb",
+                      border: "1px solid var(--border)",
                     }}
                   >
                     <div className={`stat-icon ${color}`} style={{ marginBottom: 10 }}>
                       <Icon />
                     </div>
-                    <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4 }}>{title}</div>
-                    <div style={{ fontSize: 12, color: "#6b7280" }}>{desc}</div>
+                    <div style={{ fontWeight: 700, fontSize: 14, color: "var(--text-primary)", marginBottom: 4 }}>{title}</div>
+                    <div style={{ fontSize: 12, color: "var(--text-muted)" }}>{desc}</div>
                   </div>
                 ))}
               </div>

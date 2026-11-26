@@ -44,10 +44,17 @@ app.use(express.json({ limit: "200mb" }));
 app.use(express.urlencoded({ extended: true, limit: "200mb" }));
 
 // ── Static Asset Directories ────────────────────────────────────────────────
-app.use(express.static(path.join(__dirname, "public")));
+const { authenticate } = require("./middleware/auth");
+const corsStaticHeaders = (res) => {
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Cross-Origin-Resource-Policy", "cross-origin");
+};
+app.use(express.static(path.join(__dirname, "public"), { setHeaders: corsStaticHeaders }));
+app.use("/pose_cache", express.static(path.join(__dirname, "public/pose_cache"), { setHeaders: corsStaticHeaders }));
+app.use("/generated_asanas", express.static(path.join(__dirname, "public/generated_asanas"), { setHeaders: corsStaticHeaders }));
 app.use("/product_img", express.static(path.join(__dirname, "public/product_img")));
 app.use("/thumbnails", express.static(path.join(__dirname, "public/thumbnails")));
-app.use("/videos", express.static(path.join(__dirname, "public/videos")));
+app.use("/videos", authenticate, express.static(path.join(__dirname, "public/videos")));
 
 // ── Master API Routing ──────────────────────────────────────────────────────
 app.use("/", apiRouter);

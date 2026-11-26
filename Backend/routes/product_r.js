@@ -1,23 +1,28 @@
 const express = require("express");
 const router = express.Router();
 const pc = require("../controller/product_controller");
+const { authenticate, optionalAuth, requireAdmin } = require("../middleware/auth");
 
-// Catalog & Product stats
-router.get("/sel",        pc.selproduct);
-router.get("/stats",      pc.productStats);
+// Public catalog
+router.get("/sel",                 pc.selproduct);
 
-// Orders & Inquiries
-router.get("/orders",        pc.listOrders);
-router.post("/order",        pc.orderProduct);
-router.post("/order-status", pc.updateOrderStatus);
+// Admin stats & order management
+router.get("/stats",               authenticate, requireAdmin, pc.productStats);
+router.get("/orders",              authenticate, requireAdmin, pc.listOrders);
+router.post("/order-status",       authenticate, requireAdmin, pc.updateOrderStatus);
 
-// CRUD operations (both REST and legacy forms supported)
-router.post("/add",       pc.addproduct);
-router.post("/edit",      pc.editproduct);
+// Public / Authenticated Checkout (COD + Razorpay)
+router.post("/order",                optionalAuth, pc.orderProduct);
+router.post("/create-payment-order", optionalAuth, pc.createProductPaymentOrder);
+router.post("/verify-payment",       optionalAuth, pc.verifyProductPayment);
+
+// Admin CRUD operations
+router.post("/add",       authenticate, requireAdmin, pc.addproduct);
+router.post("/edit",      authenticate, requireAdmin, pc.editproduct);
+router.post("/upd",       authenticate, requireAdmin, pc.updproduct);
+router.put("/:id",        authenticate, requireAdmin, pc.updproduct);
+router.post("/del",       authenticate, requireAdmin, pc.delproduct);
+router.delete("/:id",     authenticate, requireAdmin, pc.delproduct);
 router.get("/:id",        pc.editproduct);
-router.post("/upd",       pc.updproduct);
-router.put("/:id",        pc.updproduct);
-router.post("/del",       pc.delproduct);
-router.delete("/:id",     pc.delproduct);
 
 module.exports = router;

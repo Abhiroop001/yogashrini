@@ -3,8 +3,6 @@
    Strict Zero Emojis - WCAG AA & AAA Contrast Compliant
 */
 
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap');
-
 :root {
   /* Brand Identity Tokens */
   --brand-primary: #FF2D6F;

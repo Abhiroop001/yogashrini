@@ -320,6 +320,197 @@
         "Savasana with a bolster beneath the knee popliteal fossa to relieve lumbar strain.",
         "Weighted Savasana with a sandbag on the pelvis or eye pillow over the orbits."
       ]
+    },
+    {
+      "sanskrit_name": "Utkatasana",
+      "english_name": "Chair Pose",
+      "category": "Standing Metabolic Strength",
+      "difficulty": "Beginner to Intermediate",
+      "primary_alignment_cues": [
+        "Bring feet hip-width apart or big toes touching with weight balanced toward the heels.",
+        "Sit hips back as if lowering onto a low chair while keeping knees behind toes.",
+        "Draw lower navel inward to maintain a neutral lumbar curve and avoid over-arching.",
+        "Raise arms parallel alongside the ears with shoulders depressed away from the neck."
+      ],
+      "joint_angles_standard": {
+        "knee_flexion_deg": 110.0,
+        "hip_flexion_deg": 100.0
+      },
+      "benefits": [
+        "Recruits large quadriceps, gluteus maximus, and core muscle groups to boost GLUT4 glucose uptake.",
+        "Elevates heart rate and active metabolic expenditure during weight-loss flows.",
+        "Builds isometric lower-body strength to support lean mass preservation."
+      ],
+      "contraindications": [
+        "Acute knee osteoarthritis or patellofemoral chondromalacia (reduce depth or use wall-sit support).",
+        "Severe unmanaged hypertension (keep hands at heart center)."
+      ],
+      "variations": [
+        "Wall-supported Utkatasana at 135-degree knee angle.",
+        "Hands in Anjali Mudra at sternum to relieve shoulder strain."
+      ]
+    },
+    {
+      "sanskrit_name": "Navasana",
+      "english_name": "Boat Pose",
+      "category": "Core Stability",
+      "difficulty": "Intermediate",
+      "primary_alignment_cues": [
+        "Balance cleanly on the sitting bones (ischial tuberosities) without rounding onto the sacrum.",
+        "Lift sternum toward the sky with broad collarbones.",
+        "Elevate shins parallel to the floor (Half-Boat) or extend legs at 45 degrees.",
+        "Extend arms forward parallel to the mat alongside outer knees."
+      ],
+      "joint_angles_standard": {
+        "hip_flexion_deg": 75.0,
+        "trunk_inclination_deg": 45.0
+      },
+      "benefits": [
+        "Strengthens rectus abdominis, iliopsoas, and deep transverse abdominis stabilizers.",
+        "Supports metabolic tone and core endurance for both fat loss and strength building."
+      ],
+      "contraindications": [
+        "Acute lumbar disc herniation or hip flexor tendinitis (keep heels grounded in Ardha Navasana).",
+        "Abdominal hernia or late-term pregnancy."
+      ],
+      "variations": [
+        "Ardha Navasana with bent knees or lightly gripping the back of the thighs.",
+        "Supine core brace progression for lumbar protection."
+      ]
+    },
+    {
+      "sanskrit_name": "Phalakasana",
+      "english_name": "Plank Pose",
+      "category": "Isometric Core & Upper Body",
+      "difficulty": "Beginner to Intermediate",
+      "primary_alignment_cues": [
+        "Stack wrists vertically beneath shoulder joints with fingers spread actively.",
+        "Press heels backward while lengthening the crown of the head forward.",
+        "Protract scapulae slightly to engage serratus anterior and prevent shoulder winging.",
+        "Maintain one continuous straight line from heels through pelvis to crown."
+      ],
+      "joint_angles_standard": {
+        "shoulder_flexion_deg": 90.0,
+        "trunk_alignment_deg": 180.0
+      },
+      "benefits": [
+        "Drives full-body isometric time-under-tension ideal for lean muscle hypertrophy.",
+        "Strengthens wrist stabilizers, triceps, deltoids, and deep abdominal core."
+      ],
+      "contraindications": [
+        "Carpal tunnel syndrome (drop onto forearms for Forearm Plank).",
+        "Acute shoulder rotator cuff tear."
+      ],
+      "variations": [
+        "Forearm Plank to eliminate wrist extension compression.",
+        "Knees-down Modified Plank for progressive strength buildup."
+      ]
+    },
+    {
+      "sanskrit_name": "Ardha Matsyendrasana",
+      "english_name": "Half Lord of the Fishes",
+      "category": "Seated Spinal Twist",
+      "difficulty": "Beginner to Intermediate",
+      "primary_alignment_cues": [
+        "Ground both sitting bones evenly on a folded blanket if hamstrings/hips pull pelvis backward.",
+        "Inhale to axially lengthen the spine before rotating gently from the thoracic ribcage.",
+        "Keep knees aligned and breathe smoothly into the abdominal viscera."
+      ],
+      "joint_angles_standard": {
+        "thoracic_rotation_deg": 45.0
+      },
+      "benefits": [
+        "Supports visceral organ circulation, hepatic/pancreatic massage, and post-digestive motility.",
+        "Maintains rotational mobility along thoracic vertebrae."
+      ],
+      "contraindications": [
+        "Acute spinal disc bulge (keep twist minimal or switch to supine twisted knee drop).",
+        "Recent abdominal surgery or pregnancy (open twist only)."
+      ],
+      "variations": [
+        "Seated twist with bottom leg extended straight forward.",
+        "Open abdominal twist during prenatal or sensitive-back practice."
+      ]
+    },
+    {
+      "sanskrit_name": "Paschimottanasana",
+      "english_name": "Seated Forward Bend",
+      "category": "Seated Forward Fold / Stress Reset",
+      "difficulty": "Beginner to Intermediate",
+      "primary_alignment_cues": [
+        "Elevate hips on a folded blanket if hamstrings restrict anterior pelvic tilt.",
+        "Hinge cleanly from hip creases with a long spine rather than rounding upper shoulders.",
+        "Rest hands softly on shins, yoga strap, or outer feet with relaxed neck."
+      ],
+      "joint_angles_standard": {
+        "hip_flexion_deg": 45.0,
+        "knee_extension_deg": 175.0
+      },
+      "benefits": [
+        "Downregulates HPA-axis cortisol and sympathetic hyperarousal.",
+        "Combines mild abdominal compression with restorative digestive calm."
+      ],
+      "contraindications": [
+        "Acute lumbar disc herniation or active sciatica (bend knees deeply or avoid).",
+        "Severe hamstring tear."
+      ],
+      "variations": [
+        "Janu Sirsasana (Single-leg forward fold).",
+        "Strap-assisted Paschimottanasana with bolster across thighs."
+      ]
+    },
+    {
+      "sanskrit_name": "Vajrasana",
+      "english_name": "Thunderbolt Pose",
+      "category": "Postprandial Digestive Posture",
+      "difficulty": "Beginner",
+      "primary_alignment_cues": [
+        "Kneel gently with shins parallel and tops of feet flat on the floor.",
+        "Lower sitting bones evenly between the heels with spine tall and relaxed.",
+        "Rest palms quietly on thighs and practice slow diaphragmatic breathing for 5-10 minutes after meals."
+      ],
+      "joint_angles_standard": {
+        "knee_flexion_deg": 35.0,
+        "torso_vertical_tilt_max_deg": 5.0
+      },
+      "benefits": [
+        "Redirects lower-limb circulation toward splanchnic abdominal viscera after meals to aid digestion and nutrient absorption.",
+        "Helps relieve mild bloating, acid pooling, and post-meal lethargy."
+      ],
+      "contraindications": [
+        "Severe knee osteoarthritis, torn meniscus, or recent ankle sprain (place cushion under hips or sit upright on a chair)."
+      ],
+      "variations": [
+        "Vajrasana with folded blanket tucked behind knee creases.",
+        "Sitting upright in Sukhasana on a cushion as a knee-safe alternative."
+      ]
+    },
+    {
+      "sanskrit_name": "Dhanurasana",
+      "english_name": "Bow Pose",
+      "category": "Prone Endocrine Backbend",
+      "difficulty": "Intermediate",
+      "primary_alignment_cues": [
+        "Lie prone, bend both knees hip-width apart, and hold outer ankles securely.",
+        "Inhale to kick shins lightly into hands, lifting sternum and thighs evenly.",
+        "Avoid splaying knees wider than pelvis; gaze gently forward with soft jaw."
+      ],
+      "joint_angles_standard": {
+        "lumbar_extension_deg": 30.0,
+        "knee_flexion_deg": 75.0
+      },
+      "benefits": [
+        "Stimulates abdominal wall, endocrine/thyroid front-neck vascularity, and thoracic expansion.",
+        "Strengthens entire posterior chain musculature."
+      ],
+      "contraindications": [
+        "Abdominal hernia, recent abdominal surgery, hypertension, or pregnancy.",
+        "Acute lower back pain or cervical stenosis."
+      ],
+      "variations": [
+        "Salabhasana (Locust Pose) with arms beside hips.",
+        "Sphinx Pose for gentle anterior chest opening."
+      ]
     }
   ]
 }

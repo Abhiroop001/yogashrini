@@ -5,8 +5,7 @@ import Sidebar from "../inc/Sidebar";
 import Top from "../inc/Top";
 import Footer from "../inc/Footer";
 import { MdCloudUpload, MdSchool, MdSave, MdArrowBack } from "react-icons/md";
-
-const API = "http://localhost:2000";
+import { adminFetch, API_BASE as API } from "../utils/api";
 
 interface CourseFormData {
   title: string;
@@ -31,7 +30,7 @@ export const EditCourse: React.FC = () => {
 
   useEffect(() => {
     if (!id) return;
-    fetch(`${API}/course/${id}`)
+    adminFetch(`/course/${id}`)
       .then((r) => r.json())
       .then((d) => {
         const c = d.course;
@@ -72,7 +71,7 @@ export const EditCourse: React.FC = () => {
     if (thumbFile) fd.append("thumbnail", thumbFile);
 
     try {
-      const r = await fetch(`${API}/course/${id}`, { method: "PUT", body: fd });
+      const r = await adminFetch(`/course/${id}`, { method: "PUT", body: fd });
       const data = await r.json();
       if (r.ok) {
         setMsg({ type: "success", text: "Course curriculum updated successfully" });
@@ -133,7 +132,7 @@ export const EditCourse: React.FC = () => {
           </AnimatePresence>
 
           <form onSubmit={handleSubmit}>
-            <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 24 }}>
+            <div className="admin-form-split">
               <div>
                 <div className="ys-card" style={{ marginBottom: 20 }}>
                   <div className="ys-card-header">

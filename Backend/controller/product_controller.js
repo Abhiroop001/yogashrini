@@ -1,7 +1,13 @@
+// Server/controller/product_controller.js
+const mongoose = require("mongoose");
 const Product = require("../db/productdb");
 const ProductOrder = require("../db/orderdb");
 const path = require("path");
 const fs = require("fs");
+const {
+  createRazorpayOrder,
+  verifyRazorpaySignature,
+} = require("../services/razorpay_service");
 
 // Ensure upload directory exists
 const imgDir = path.join(__dirname, "../public/product_img");
@@ -26,10 +32,10 @@ function sanitizeFilename(name) {
 
 module.exports = {
 
-  // Create Product
+  // Create Product (Admin)
   async addproduct(req, res) {
     try {
-      const pname = req.body.pname ? req.body.pname.trim() : "";
+      const pname = req.body.pname ? String(req.body.pname).trim() : "";
       if (!pname) {
         return res.status(400).json({ error: "Product name is required" });
       }
@@ -41,12 +47,11 @@ module.exports = {
         await objimg.mv(path.join(imgDir, filename));
       }
 
-      // Safe stock parsing - avoid falsy 0 converting to 10
       const stock = req.body.pstock !== undefined && req.body.pstock !== ""
         ? Math.max(0, parseInt(req.body.pstock, 10) || 0)
         : 10;
 
-      let status = req.body.pstatus || (stock === 0 ? "Out of Stock" : "Available");
+      const status = req.body.pstatus || (stock === 0 ? "Out of Stock" : "Available");
 
       const product = await Product.create({
         pname,
@@ -66,7 +71,7 @@ module.exports = {
     }
   },
 
-  // Select / List all products (with optional filter query)
+  // Select / List all products
   async selproduct(req, res) {
     try {
       const query = {};
@@ -88,11 +93,13 @@ module.exports = {
     }
   },
 
-  // Get single product for edit/view
+  // Get single product
   async editproduct(req, res) {
     try {
       const id = req.params.id || req.body.id || req.query.id;
-      if (!id) return res.status(400).json({ error: "Product ID required" });
+      if (!id || !mongoose.Types.ObjectId.isValid(id)) {
+        return res.status(400).json({ error: "Valid Product ID required" });
+      }
 
       const data = await Product.findById(id);
       if (!data) return res.status(404).json({ error: "Product not found" });
@@ -102,37 +109,36 @@ module.exports = {
     }
   },
 
-  // Update product
+  // Update product (Admin)
   async updproduct(req, res) {
     try {
       const id = req.params.id || req.body.id || req.query.id;
-      if (!id) return res.status(400).json({ error: "Product ID required" });
+      if (!id || !mongoose.Types.ObjectId.isValid(id)) {
+        return res.status(400).json({ error: "Valid Product ID required" });
+      }
 
       const existing = await Product.findById(id);
       if (!existing) return res.status(404).json({ error: "Product not found" });
 
-      // Stock handling
       let newStock = existing.pstock;
       if (req.body.pstock !== undefined && req.body.pstock !== "") {
         newStock = Math.max(0, parseInt(req.body.pstock, 10) || 0);
       }
 
       const upd = {
-        pname:          req.body.pname ? req.body.pname.trim() : existing.pname,
-        pprice:         req.body.pprice !== undefined ? Math.max(0, Number(req.body.pprice)) : existing.pprice,
-        poriginalPrice: req.body.poriginalPrice !== undefined ? Math.max(0, Number(req.body.poriginalPrice)) : existing.poriginalPrice,
+        pname:          req.body.pname ? String(req.body.pname).trim() : existing.pname,
+        pprice:         req.body.pprice !== undefined ? Math.max(0, Number(req.body.pprice) || 0) : existing.pprice,
+        poriginalPrice: req.body.poriginalPrice !== undefined ? Math.max(0, Number(req.body.poriginalPrice) || 0) : existing.poriginalPrice,
         pcategory:      req.body.pcategory || existing.pcategory,
-        pstatus:        req.body.pstatus || (newStock === 0 ? "Out of Stock" : existing.pstatus),
+        pstatus:        req.body.pstatus || (newStock === 0 ? "Out of Stock" : "Available"),
         pstock:         newStock,
         pdetails:       req.body.pdetails !== undefined ? req.body.pdetails : existing.pdetails,
       };
 
-      // Handle image update or removal
       if (req.files && req.files.pimg) {
         const objimg   = req.files.pimg;
         const filename = sanitizeFilename(objimg.name);
         await objimg.mv(path.join(imgDir, filename));
-        
         if (existing.pimg) deleteImageFile(existing.pimg);
         upd.pimg = filename;
       } else if (req.body.removeImg === "true" || req.body.removeImg === true) {
@@ -148,12 +154,14 @@ module.exports = {
     }
   },
 
-  // Delete product
+  // Delete product (Admin)
   async delproduct(req, res) {
     try {
       const id = req.params.id || req.body.id || req.query.id;
-      if (!id) return res.status(400).json({ error: "Product ID required" });
-      
+      if (!id || !mongoose.Types.ObjectId.isValid(id)) {
+        return res.status(400).json({ error: "Valid Product ID required" });
+      }
+
       const product = await Product.findById(id);
       if (product && product.pimg) {
         deleteImageFile(product.pimg);
@@ -166,13 +174,11 @@ module.exports = {
     }
   },
 
-  // Order / Purchase inquiry
+  // Place COD / Studio Pickup Order (server-verified price & stock)
   async orderProduct(req, res) {
     try {
       const {
         productId,
-        productName,
-        productPrice,
         quantity,
         customerName,
         customerEmail,
@@ -181,46 +187,185 @@ module.exports = {
         notes,
       } = req.body;
 
-      if (!customerName || !customerPhone) {
+      if (!productId || !mongoose.Types.ObjectId.isValid(productId)) {
+        return res.status(400).json({ error: "Valid productId is required" });
+      }
+      if (!customerName || !String(customerName).trim() || !customerPhone || !String(customerPhone).trim()) {
         return res.status(400).json({ error: "Customer name and phone number are required" });
       }
 
       const qty = Math.max(1, parseInt(quantity, 10) || 1);
-      const price = Math.max(0, Number(productPrice) || 0);
+      const product = await Product.findById(productId);
+      if (!product) {
+        return res.status(404).json({ error: "Product not found" });
+      }
+      if (product.pstatus === "Out of Stock" || (product.pstock ?? 0) < qty) {
+        return res.status(400).json({ error: `Insufficient stock available (${product.pstock ?? 0} remaining)` });
+      }
+
+      // Compute price strictly from authoritative DB record
+      const price = Math.max(0, Number(product.pprice) || 0);
       const total = price * qty;
 
-      // Check stock if product exists
-      if (productId) {
-        const product = await Product.findById(productId);
-        if (product) {
-          if (product.pstock > 0) {
-            product.pstock = Math.max(0, product.pstock - qty);
+      product.pstock = Math.max(0, (product.pstock ?? 0) - qty);
+      if (product.pstock === 0) product.pstatus = "Out of Stock";
+      await product.save();
+
+      const order = await ProductOrder.create({
+        userId:        req.user?.id ? String(req.user.id) : null,
+        productId:     product._id,
+        productName:   product.pname,
+        productPrice:  price,
+        quantity:      qty,
+        totalAmount:   total,
+        currency:      "INR",
+        customerName:  String(customerName).trim(),
+        customerEmail: customerEmail ? String(customerEmail).trim() : (req.user?.email || ""),
+        customerPhone: String(customerPhone).trim(),
+        address:       address ? String(address).trim() : "",
+        notes:         notes ? String(notes).trim() : "",
+        status:        "Pending",
+        paymentMethod: "COD / Direct Inquiry",
+        isPaid:        false,
+      });
+
+      res.status(201).json({
+        msg: "Order inquiry placed! Our studio team will contact you shortly.",
+        order,
+      });
+    } catch (err) {
+      console.error("Order product error:", err);
+      res.status(500).json({ error: err.message });
+    }
+  },
+
+  // POST /product/create-payment-order (Razorpay Online Store Order)
+  async createProductPaymentOrder(req, res) {
+    try {
+      const {
+        productId,
+        quantity,
+        customerName,
+        customerEmail,
+        customerPhone,
+        address,
+        notes,
+      } = req.body;
+
+      if (!productId || !mongoose.Types.ObjectId.isValid(productId)) {
+        return res.status(400).json({ error: "Valid productId is required" });
+      }
+      if (!customerName || !String(customerName).trim() || !customerPhone || !String(customerPhone).trim()) {
+        return res.status(400).json({ error: "Customer name and phone number are required" });
+      }
+
+      const qty = Math.max(1, parseInt(quantity, 10) || 1);
+      const product = await Product.findById(productId);
+      if (!product) {
+        return res.status(404).json({ error: "Product not found" });
+      }
+      if (product.pstatus === "Out of Stock" || (product.pstock ?? 0) < qty) {
+        return res.status(400).json({ error: `Insufficient stock available (${product.pstock ?? 0} remaining)` });
+      }
+
+      const price = Math.max(0, Number(product.pprice) || 0);
+      const total = price * qty;
+      if (total <= 0) {
+        return res.status(400).json({ error: "Free items can use Direct Inquiry instead of Razorpay." });
+      }
+
+      const orderInfo = await createRazorpayOrder({
+        amountInINR: total,
+        currency: "INR",
+        receiptPrefix: `prd_${String(product._id).slice(-6)}`,
+        notes: {
+          type: "product_order",
+          productId: String(product._id),
+          qty: String(qty),
+          userId: req.user?.id ? String(req.user.id) : "guest",
+        },
+      });
+
+      const order = await ProductOrder.create({
+        userId:        req.user?.id ? String(req.user.id) : null,
+        productId:     product._id,
+        productName:   product.pname,
+        productPrice:  price,
+        quantity:      qty,
+        totalAmount:   total,
+        currency:      orderInfo.currency,
+        customerName:  String(customerName).trim(),
+        customerEmail: customerEmail ? String(customerEmail).trim() : (req.user?.email || ""),
+        customerPhone: String(customerPhone).trim(),
+        address:       address ? String(address).trim() : "",
+        notes:         notes ? String(notes).trim() : "",
+        status:        "Awaiting Payment",
+        paymentMethod: "Razorpay Online",
+        orderId:       orderInfo.orderId,
+        isPaid:        false,
+      });
+
+      res.json({
+        ...orderInfo,
+        dbOrderId: order._id,
+        productName: product.pname,
+      });
+    } catch (err) {
+      console.error("Create product payment order error:", err);
+      res.status(err.statusCode || 500).json({ error: err.message });
+    }
+  },
+
+  // POST /product/verify-payment (Razorpay HMAC Verification + Atomic Stock Decrement)
+  async verifyProductPayment(req, res) {
+    try {
+      const {
+        razorpay_order_id,
+        razorpay_payment_id,
+        razorpay_signature,
+        dbOrderId,
+      } = req.body;
+
+      const valid = verifyRazorpaySignature({
+        orderId: razorpay_order_id,
+        paymentId: razorpay_payment_id,
+        signature: razorpay_signature,
+      });
+
+      if (!valid) {
+        return res.status(400).json({ error: "Payment verification failed - invalid signature." });
+      }
+
+      const query = { orderId: razorpay_order_id };
+      if (dbOrderId && mongoose.Types.ObjectId.isValid(dbOrderId)) {
+        query._id = dbOrderId;
+      }
+
+      const order = await ProductOrder.findOne(query);
+      if (!order) {
+        return res.status(404).json({ error: "Matching pending product order not found." });
+      }
+
+      if (!order.isPaid) {
+        order.isPaid = true;
+        order.paymentId = razorpay_payment_id;
+        order.status = "Confirmed";
+        order.paidAt = new Date();
+        await order.save();
+
+        if (order.productId) {
+          const product = await Product.findById(order.productId);
+          if (product) {
+            product.pstock = Math.max(0, (product.pstock ?? 0) - order.quantity);
             if (product.pstock === 0) product.pstatus = "Out of Stock";
             await product.save();
           }
         }
       }
 
-      const order = await ProductOrder.create({
-        productId:     productId || null,
-        productName:   productName || "Yoga Product",
-        productPrice:  price,
-        quantity:      qty,
-        totalAmount:   total,
-        customerName:  customerName.trim(),
-        customerEmail: customerEmail ? customerEmail.trim() : "",
-        customerPhone: customerPhone.trim(),
-        address:       address ? address.trim() : "",
-        notes:         notes ? notes.trim() : "",
-        status:        "Pending",
-      });
-
-      res.status(201).json({
-        msg: "Order placed successfully! Our team will contact you shortly.",
-        order,
-      });
+      res.json({ msg: "Payment verified and order confirmed!", order });
     } catch (err) {
-      console.error("Order product error:", err);
+      console.error("Verify product payment error:", err);
       res.status(500).json({ error: err.message });
     }
   },

@@ -55,19 +55,27 @@ echo.
 
 :: 1. Node.js Express Server (Port 2000)
 echo   [+] Starting Express Server (Port 2000)...
-start "Yogashrini [1/4] - Express Server [2000]" cmd /k "title Express Server [2000] && cd /d "%ROOT_DIR%Server" && npm start"
+if exist "%ROOT_DIR%Backend\index.js" (
+    start "Yogashrini [1/4] - Express Server [2000]" cmd /k "title Express Server [2000] && cd /d "%ROOT_DIR%Backend" && npm start"
+) else (
+    start "Yogashrini [1/4] - Express Server [2000]" cmd /k "title Express Server [2000] && cd /d "%ROOT_DIR%Server" && npm start"
+)
 
 :: 2. Python AI Backend on RTX 3050 GPU (Port 5000)
 if defined PYTHON_EXE (
     echo   [+] Starting Python AI Backend with RTX 3050 GPU (Port 5000)...
-    start "Yogashrini [2/4] - Python AI Backend [5000]" cmd /k "title Python AI GPU [5000] && cd /d "%ROOT_DIR%Python Backend" && "!PYTHON_EXE!" app.py"
+    start "Yogashrini [2/4] - Python AI Backend [5000]" cmd /k "title Python AI GPU [5000] && cd /d "%ROOT_DIR%Python Backend" && "!PYTHON_EXE!" -u app.py"
 ) else (
     echo   [-] Skipped Python AI Backend (Python executable missing)
 )
 
 :: 3. Admin React Dashboard (Port 3001)
 echo   [+] Starting Admin React Panel with Vite (Port 3001)...
-start "Yogashrini [3/4] - Admin Panel [3001]" cmd /k "title Admin Panel [3001] && cd /d "%ROOT_DIR%admin" && npm run dev"
+if exist "%ROOT_DIR%Admin\package.json" (
+    start "Yogashrini [3/4] - Admin Panel [3001]" cmd /k "title Admin Panel [3001] && cd /d "%ROOT_DIR%Admin" && npm run dev"
+) else (
+    start "Yogashrini [3/4] - Admin Panel [3001]" cmd /k "title Admin Panel [3001] && cd /d "%ROOT_DIR%admin" && npm run dev"
+)
 
 :: 4. Frontend React Web App (Port 3000)
 echo   [+] Starting Frontend React Web App with Vite (Port 3000)...
